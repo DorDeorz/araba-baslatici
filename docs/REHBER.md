@@ -176,6 +176,81 @@ Anahtar kaybolursa uygulama güncellenemez → yedekli tut.
 - Kendi telefonda Play/GitHub sürümünü kurup Self-Mode'u dene: PhoneAuto kadar iyi mi?
   (görüntü akıcılığı, dokunma, ses gecikmesi, dikey/yatay, mikrofon). Sonucu bu belgeye yaz.
 
+#### Aşama 0 bulguları (kod incelemesi, 5 Kasım 2026)
+
+Bakılan sürüm: `ae74788d` (3 Kasım 2026), sürüm **4.0.0-beta2**. Depo GitHub'da
+`andreknieriem/open-headunit` adına taşınmış (README böyle bağlantı veriyor); eski `headunit-revived` adresinden klonlama hâlâ çalışıyor.
+Kotlin paket adı `com.andrerinas.openheadunit`, `applicationId` hâlâ `com.andrerinas.headunitrevived`.
+Masaüstündeki 2.1.1 APK çok eski. Self-Mode 17.4 desteği daha sonraki sürümlerde geldi.
+
+**Boyut ve yapı.** Elle yazılmış ~124 bin satır Kotlin/Java (685 dosya). Buna ek olarak ~124 bin
+satır üretilmiş protobuf (`aap/protocol/proto`), ~33 bin satır C/C++ (`app/src/main/cpp`: FFmpeg
+yazılım çözücüsü, AAudio çıkışı, ses zaman esnetme, libusb) ve 7.8 MB hazır `.so` var
+(`jniLibs`: libavcodec, libavutil, libswscale, libusb). Derleme için NDK 29 ve CMake gerekiyor.
+AGP 8.13.2, Gradle 8.14.4, minSdk 16 (Play çeşidi için 21). Bizim proje ise AGP 9.4 ve Gradle 9.6
+kullanıyor. Kodun büyük kısmı bize gerekmeyen yollar için: USB (AOA), kablosuz (Wi-Fi Direct,
+hotspot, Wireless Helper, ZLink/HCT/FYT/ESP32 Bluetooth köprüleri), kendi ana ekranı, widget'lar,
+otomasyon. 200'e yakın birim testi (Robolectric) var.
+
+**Self-Mode akışı (AA 17.4+).** `connection/self/SelfLauncherManager.kt` sürümü okur
+(`SelfLaunchRoutePolicy`: 17.4 ve üstü → `HEADUNIT_SERVER`). `launchers/SelfLauncherV17_4.kt`
+yalnızca `CommManager.connect("127.0.0.1", 5277)` dener. **Sunucu kapalıysa kendisi başlatmıyor.**
+"Lütfen Headunit Server'ı başlatın" diye bir Toast gösteriyor ve
+`gearhead.companion.settings.DefaultSettingsActivity` ekranını açıyor. Menüye basma işini
+kullanıcıya bırakıyor. Yani sunucuyu otomatik başlatma (Aşama 2) tamamen bizim katkımız olacak.
+17.4 öncesi için 5288'de `WirelessServer` ve eski tetikleyiciler var. Bunlar bizi ilgilendirmiyor.
+
+**Dışarıdan başlatma.** `main.MainActivity` dışa açık ve `headunit://selfmode` deep link'ini kabul
+ediyor (`MainActivity.kt:1204`). Ayrıca `headunit://connect?ip=...` de var. Bu sayede Araba
+Başlatıcı, kod almadan Open Headunit'i PhoneAuto yerine doğrudan açabilir. Sunucu ise bizim
+erişilebilirlik servisimizle önceden başlatılmalı. Bu, Aşama 1'den önce denenebilecek ucuz bir ara adım.
+
+**El sıkışma.** Sıra şöyle: sürüm isteği (1.2 duyuruluyor, telefon minor'ı seçiyor;
+`AapVersionNegotiation.kt`), sonra TLS. İstemci sertifikası `res/raw/cert` + `res/raw/privkey`
+dosyalarında; konu `O=Google-Android-Reference`, veren `O=Google Automotive Link`, 2014–2044
+geçerli. Google'ın referans head unit sertifikası; açık kaynak head unit projeleri (Mike Reid'in headunit'inden beri) aynısını kullanıyor.
+Sunucu sertifikası doğrulanmıyor (`ssl/SslContextFactory.kt`, trust-all). Conscrypt paketli
+geliyor. Bu sertifika Google'a ait: depo herkese açılırsa ya da APK dağıtılırsa ayrıca risk.
+
+**Video.** `decoder/video/VideoDecoder.kt` MediaCodec ile H.264/H.265 çözüyor. Bozuk donanım
+çözücüler için FFmpeg yazılım yedeği var (`FfmpegVideoDecoder.kt`). Ekran boyu ve DPI
+`ServiceDiscoveryResponse.kt` içinde duyuruluyor (otomatik DPI, yedek çözünürlük). Bilinen sorun:
+dikeyde Google Maps dokunması bozuk; README DPI'yı 200'ün altına çekmeyi öneriyor. PhoneAuto'nun
+#8/#11 sorunlarıyla aynı belirti olabilir.
+
+**Ses.** `aap/AapAudio.kt` + `decoder/audio/`: AAC'yi MediaCodec ile, PCM'i AudioTrack ya da
+AAudio (native) ile çalıyor. Medya, konuşma ve sistem için ayrı kanallar var. Ses odağı
+`PlaybackFocusPolicy`, gecikme ayarı jitter buffer ve zaman esnetme ile yapılıyor.
+
+**Dokunma.** `input/TouchCoordinateMapper.kt`, `RemoteTouchPolicy.kt`, iki parmak hareketleri
+(`TwoFingerGestureTracker.kt`). Projeksiyon ekranı `aap/AapProjectionActivity.kt` (~2950 satır).
+
+**Mikrofon.** `decoder/audio/MicRecorder.kt` (AudioRecord) ve `aap/MicSessionController.kt`.
+`FOREGROUND_SERVICE_MICROPHONE` ve `RECORD_AUDIO` izinleri gerekiyor.
+
+**Gece modu ve sensörler.** `ServiceDiscoveryResponse.kt`'de DRIVING_STATUS, LOCATION (isteğe
+bağlı GPS) ve NIGHT sensörleri duyuruluyor. Gece olayı `aap/protocol/messages/NightModeEvent.kt`'de.
+Bir de gece kaplaması (overlay) var.
+
+**İzinler.** Manifest 31 izin istiyor: konum, Bluetooth, Wi-Fi, mikrofon, telefon durumu,
+`SYSTEM_ALERT_WINDOW`, `READ_LOGS`, `WRITE_SETTINGS`, cihaz yöneticisi ve başka izinler.
+Bize gerekenler bunların küçük bir kısmı.
+
+**Issue'lar.** GitHub issue sayfası bu oturumdan okunamadı (robots engeli; depo bu oturuma bağlı
+değil). Telefonda denemeden önce elle bakılmalı: "self mode", "17.4", "5277", "portrait",
+"touch" araması.
+
+**Öneri (Aşama 1 için).** Bütün uygulamayı `:ekran` modülü olarak almak ağır olur: 250 bin
+satırdan fazla kod, NDK, hazır `.so` dosyaları, AGP 8 ile 9 farkı ve ihtiyacımız olmayan pek çok
+bağlantı yolu var. Bunun yerine iki adım öneriyorum:
+1. Önce **Open Headunit'i olduğu gibi** kurup Araba Başlatıcı'dan `headunit://selfmode` ile açmak.
+   Sunucuyu kendi erişilebilirlik servisimiz dilden bağımsız başlatır (Aşama 2 öne alınır).
+   Telefonda PhoneAuto ile karşılaştırılır.
+2. Self-Mode yeterince iyiyse, kendi uygulamamıza yalnızca TCP 5277 yolunu almak: `aap/`
+   (taşıma, TLS, mesajlar), `aap/protocol/proto`, `decoder/video`, `decoder/audio` (yalnızca
+   MediaCodec/AudioTrack yolu), `input/`, `ssl/`. USB, kablosuz, ana ekran ve FFmpeg dışarıda kalır.
+   AGPL yükümlülükleri yine geçerli olur.
+
 **Aşama 1 — Depoya alma ve derleme**
 - Open Headunit kodunu bu depoya ayrı modül olarak al (ör. `:ekran`), CI'da derlensin.
 - Paket adı `com.dordeorz.arababaslatici` altında tek uygulama mı, ayrı uygulama mı? Öneri: tek
