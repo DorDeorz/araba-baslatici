@@ -389,6 +389,27 @@ Aşama 1'in PR'ları (öneri):
 - Dikey + yatay, tam ekran, dokunma doğruluğu, ses odak yönetimi, mikrofon/Asistan, klavye,
   gece modu, çarpının içerik üstünde durmaması.
 
+### Kendi ekranımız: durum (2026-11-05, 1.9.0, `app/src/main/kotlin/.../ekran/`)
+
+Telefonda doğrulandı: bağlantı + TLS, servis keşfi, görüntü (H.264, donanım çözücü
+`OMX.qcom.video.decoder.avc`), dokunma, sistem sesi, mikrofon/Asistan, Android Auto'daki "Çık"
+ya da geri hareketiyle tek adımda çıkış (oturum + sunucu birlikte kapanır).
+
+| Ölçüm | Open Headunit 3.5.0 | Bizim 1.9.0 |
+|---|---|---|
+| Bağlantı (TCP→TLS) | 0,73 sn | 0,9–1,7 sn (çoğu AA'nın sürüm cevabını beklemek) |
+| İlk görüntü | 1,86 sn | 1080p 2,1–2,6 sn, 720p 1,8 sn |
+| Ekranda fps (hareketli ekran) | ~33 | 1080p 55–60, 720p 50–60 |
+
+- Android Auto yalnızca ekran değişince kare gönderir; sabit ekranda (ör. çalan şarkı) 11–20 fps
+  normaldir, sürükleyince 60'a çıkar. Gelen = basılan, bekleyen 0: darboğaz bizde değil.
+- Klavyeye dokununca AA telefonda kendi ekranını (Maps GhostActivity) üste açıyor; dönünce
+  yüzey yenilenir, SPS/PPS tekrar verilir ve anahtar kare beklenir.
+- Dosyalar: `Pb` (protobuf), `Cerceve`/`AapTls`/`AapTasima` (taşıma), `Kesif` (servis keşfi,
+  `Geometri`), `AapOturum` (mesajlar), `GoruntuCozucu`, `Mikrofon`, `EkranActivity`.
+- Kalan: çentik payı (UiConfig content_insets), aynı ekranda klavye, ayarlar ekranı (DPI,
+  çözünürlük), Bluetooth akışını PhoneAuto yerine bizim ekrana bağlamak.
+
 ### Test listesi (her aşama sonunda telefonda)
 
 - [ ] Arabaya bağlanınca bildirim geliyor; Başlat'a basınca Android Auto açılıyor.
