@@ -15,6 +15,8 @@ kendiliğinden başlatan Android uygulaması.
   kopunca sunucuyu kapatır.
 - **Ayarları kapatma** — PhoneAuto'daki çarpıdan sonra arkada kalan Android Auto ayarlarını kapatır.
 
+Geliştirme geçmişi, öğrenilenler ve kendi ekran uygulamamızın planı: [docs/REHBER.md](docs/REHBER.md).
+
 ## Kurulum
 
 Gereken: Android 13+, PhoneAuto, Android Auto'da geliştirici modu açık.
