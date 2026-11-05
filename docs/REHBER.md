@@ -351,6 +351,13 @@ Alternatif (önerilmiyor): OH'yi bütün olarak `:ekran` modülü yapmak. Hemen 
 NDK/FFmpeg `.so`, AGP 8→9 uyarlaması ve bize gerekmeyen her şey gelir; çentik, çıkış, klavye gibi
 istekleri OH'nin karmaşık koduna işlemek gerekir.
 
+**Performans hedefi (kullanıcı isteği: OH ve PhoneAuto'dan daha akıcı).** Karşılaştırma noktası
+(5 Kasım, OH 3.5.0, yatay): ilk görüntü 1,9 sn, çözme 45–49 fps, ekranda ~33 fps. Denenecekler:
+60 fps duyurmak (`VideoFrameRateType._60`, telefon kaldırmazsa 30), MediaCodec `low-latency`
+(API 30+) ve doğrudan SurfaceView çıkışı, 1080p/720p ve H.264/H.265 ölçümü, sunucuyu önceden
+başlatıp hızlı bağlanma. Her PR sonunda fps ve ilk görüntü süresi ölçülür. Tavan: kodlama ve
+çözme aynı telefonda.
+
 Aşama 1'in PR'ları (öneri):
 1. `.proto` + protobuf-lite derlemesi, TCP + sürüm + TLS el sıkışması; "bağlandı" logu (telefonda test).
 2. Kontrol kanalı + video → ekranda Android Auto görüntüsü (yatay, 1920×1080, DPI ayarlı).
