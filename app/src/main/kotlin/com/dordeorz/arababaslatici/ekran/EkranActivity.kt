@@ -30,6 +30,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     private val ana = Handler(Looper.getMainLooper())
     private var acilis = 0L
     private var sonSayi = 0
+    private var sonGelen = 0
     private var sonDurum = ""
 
     override fun onCreate(b: Bundle?) {
@@ -44,7 +45,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         val sinir = windowManager.maximumWindowMetrics.bounds
         val ekranG = maxOf(sinir.width(), sinir.height())
         val ekranY = minOf(sinir.width(), sinir.height())
-        geometri = Geometri.hesapla(ekranG, ekranY, DPI)
+        val yuksek = !intent.getBooleanExtra(EK_720P, false)
+        geometri = Geometri.hesapla(ekranG, ekranY, if (yuksek) DPI else DPI * 2 / 3, yuksek)
         olcek = ekranG.toFloat() / geometri.arayuzG
 
         val yuzey = SurfaceView(this)
@@ -98,10 +100,13 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             val sayi = c?.basilan?.get() ?: 0
             val fps = sayi - sonSayi
             sonSayi = sayi
+            val gelenSayi = c?.gelen?.get() ?: 0
+            val gelenFps = gelenSayi - sonGelen
+            sonGelen = gelenSayi
             val ilk = c?.ilkKareMs?.takeIf { it > 0 }?.let { "${it - acilis} ms" } ?: "—"
             bilgi.text = if (sayi == 0) sonDurum
-                else "$fps fps · ilk görüntü $ilk · bağlantı ${oturum.baglantiMs} ms\n${c?.codecAdi}"
-            if (sayi > 0) android.util.Log.i(AapTasima.TAG, "Ölçüm: $fps fps, toplam $sayi kare, ilk görüntü $ilk")
+                else "$fps fps (gelen $gelenFps, bekleyen ${c?.bekleyen}) · ${geometri.yukseklik}p · ilk görüntü $ilk · bağlantı ${oturum.baglantiMs} ms\n${c?.codecAdi}"
+            if (sayi > 0) android.util.Log.i(AapTasima.TAG, "Ölçüm: ${geometri.yukseklik}p ekrana $fps fps, AA'dan gelen $gelenFps, bekleyen ${c?.bekleyen}, toplam $sayi kare, ilk görüntü $ilk")
             ana.postDelayed(this, 1000)
         }
     }
@@ -142,5 +147,6 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     companion object {
         /** 1920×1080 yatayda telefonda iyi görünen yoğunluk (Open Headunit testinde 260). */
         const val DPI = 260
+        const val EK_720P = "720p"
     }
 }

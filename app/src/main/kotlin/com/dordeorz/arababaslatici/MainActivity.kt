@@ -129,8 +129,12 @@ class MainActivity : Activity() {
             }
         }
         kok.addView(sonuc)
-        dugme("Ekranı aç") {
-            startActivity(android.content.Intent(this, com.dordeorz.arababaslatici.ekran.EkranActivity::class.java))
+        dugme("Ekranı aç (1080p)") {
+            startActivity(Intent(this, com.dordeorz.arababaslatici.ekran.EkranActivity::class.java))
+        }
+        dugme("Ekranı aç (720p, deneme)") {
+            startActivity(Intent(this, com.dordeorz.arababaslatici.ekran.EkranActivity::class.java)
+                .putExtra(com.dordeorz.arababaslatici.ekran.EkranActivity.EK_720P, true))
         }
     }
 

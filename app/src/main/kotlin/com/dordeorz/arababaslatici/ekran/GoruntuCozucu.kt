@@ -36,6 +36,10 @@ class GoruntuCozucu(
 
     /** Ekrana basılan kare sayısı (fps ölçümü için). */
     val basilan = AtomicInteger()
+    /** Android Auto'dan gelen görüntü karesi sayısı. */
+    val gelen = AtomicInteger()
+    /** Çözücüye girmeyi bekleyen kare sayısı. */
+    val bekleyen get() = kuyruk.size
     @Volatile var ilkKareMs = -1L; private set
     @Volatile var codecAdi = ""; private set
 
@@ -45,6 +49,7 @@ class GoruntuCozucu(
     }
 
     fun besle(b: ByteArray, bas: Int, uzunluk: Int, ayar: Boolean) {
+        if (!ayar) gelen.incrementAndGet()
         if (calisiyor) kuyruk.put(Kare(b, bas, uzunluk, ayar)) else bitti(!ayar)
     }
 
