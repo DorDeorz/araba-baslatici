@@ -181,7 +181,9 @@ Anahtar kaybolursa uygulama güncellenemez → yedekli tut.
 Bakılan sürüm: `ae74788d` (3 Kasım 2026), sürüm **4.0.0-beta2**. Depo GitHub'da
 `andreknieriem/open-headunit` adına taşınmış (README böyle bağlantı veriyor); eski `headunit-revived` adresinden klonlama hâlâ çalışıyor.
 Kotlin paket adı `com.andrerinas.openheadunit`, `applicationId` hâlâ `com.andrerinas.headunitrevived`.
-Masaüstündeki 2.1.1 APK çok eski. Self-Mode 17.4 desteği daha sonraki sürümlerde geldi.
+Masaüstündeki 2.1.1 APK'nın önemi yok (Nisan 2026'da, bu projeden önce indirilmiş); göz ardı et.
+Self-Mode'un 5277'ye bağlanması 3.x'te geldi. Telefonda Android Auto 17.9 olduğu için test
+en az 3.x ile yapılmalı (Play sürümü ya da GitHub Releases). Open Headunit telefonda henüz kurulu değil.
 
 **Boyut ve yapı.** Elle yazılmış ~124 bin satır Kotlin/Java (685 dosya). Buna ek olarak ~124 bin
 satır üretilmiş protobuf (`aap/protocol/proto`), ~33 bin satır C/C++ (`app/src/main/cpp`: FFmpeg
@@ -239,6 +241,37 @@ Bize gerekenler bunların küçük bir kısmı.
 **Issue'lar.** GitHub issue sayfası bu oturumdan okunamadı (robots engeli; depo bu oturuma bağlı
 değil). Telefonda denemeden önce elle bakılmalı: "self mode", "17.4", "5277", "portrait",
 "touch" araması.
+
+**PhoneAuto'nun 5277 akışı (karşılaştırma için, logcat'ten).** `AHU.TCP_CONNECTION: Connecting to
+head unit server 127.0.0.1:5277`; sunucu açıksa 0,3–1 sn içinde `Connected`. `GH.DHUService` sırası:
+`Network server running on port 5277` → `Head unit connected` → `Head unit disconnected` →
+`Shutting down service`. Sunucu kapalıysa 2 sn sonra yeniden dener, sonra otomatik başlatmaya geçer;
+15 sn içinde bağlanamazsa rehber ekranında kalır ve aynı işlemde bir daha denemez. Ses: `AHU.AUDIO`
+AAC ve PCM akışı açıyor (AudioTrack minbuffer 15376 / 4096). TLS hatası görülmedi ama ayrıca
+bakılmadı. Telefon ekranı 1080×2400; AA'nın açıldığı çözünürlük/DPI not edilmedi.
+**Kullanıcı yatay kullanıyor: öncelik yatay mod.** Dikey ve dikey dokunma sorunları ikinci planda.
+
+**Telefonda Self-Mode test listesi (yalnızca kullanıcı başındayken).** Telefon kullanıcının
+laptop'una USB ile bağlı; bulut ya da masaüstü oturumu telefona doğrudan erişemiyor.
+Hazırlık:
+- [ ] Open Headunit'in güncel sürümünü (en az 3.x) kur. Kurulum için kullanıcıya sor.
+- [ ] PhoneAuto açık değilken dene: ikisi aynı 5277 sunucusuna bağlanır, aynı anda çalıştırılmaz.
+      PhoneAuto'yu **force-stop etme** (bkz. 4.2); son uygulamalardan kapatmak yeterli.
+- [ ] Araba Başlatıcı oturum bitince 15 sn sonra sunucuyu kapatır ve testi bozabilir. Gerekirse
+      kullanıcıdan bildirim erişimini geçici olarak kapatmasını iste (telefon ayarı: önce sor).
+Deneme:
+- [ ] Sunucu kapalıyken Self-Mode: Open Headunit AA ayarlarını açıyor mu, Toast çıkıyor mu?
+- [ ] Sunucuyu elle başlat (⋮ → Start head unit server), sonra Self-Mode: kaç saniyede bağlanıyor?
+- [ ] `adb shell am start -a android.intent.action.VIEW -d headunit://selfmode` ile dışarıdan açılıyor mu?
+- [ ] Yatay: görüntü akıcılığı, dokunma doğruluğu (Maps arama/kaydırma), tam ekran.
+- [ ] Ses: müzik, navigasyon sesi, gecikme, ses odağı (müzik navigasyonda kısılıyor mu).
+- [ ] Mikrofon / Asistan, klavye.
+- [ ] Gece modu.
+- [ ] Çıkış: Open Headunit'ten çıkınca ne oluyor, AA ayarları arkada kalıyor mu, sunucu kapanıyor mu?
+- [ ] AA dili Türkçeye alınırsa (`--locales ""`, önce sor) akış değişiyor mu? Sonra İngilizceye geri al.
+- [ ] Logcat: `adb logcat | grep -iE "SelfMode|AapTransport|CommManager|GH.DHUService"`; el sıkışma ve
+      ekran çözünürlüğü/DPI satırlarını not et.
+Sonuçları PhoneAuto ile yan yana bu bölüme yaz.
 
 **Öneri (Aşama 1 için).** Bütün uygulamayı `:ekran` modülü olarak almak ağır olur: 250 bin
 satırdan fazla kod, NDK, hazır `.so` dosyaları, AGP 8 ile 9 farkı ve ihtiyacımız olmayan pek çok
