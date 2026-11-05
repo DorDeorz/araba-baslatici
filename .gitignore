@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+local.properties
+.kotlin/
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+
+# İmza anahtarları
+*.jks
+*.keystore
+*.p12
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Loglar
+*.log

@@ -1,0 +1,68 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: İmza anahtarı
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ARABA_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ARABA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "İmza anahtarı Secret'ı yok: APK geçici debug anahtarıyla imzalandı, telefona kurma" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/arababaslatici.p12"
+          keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/arababaslatici.p12" -storepass "$KEYSTORE_PASSWORD" > /dev/null \
+            || { echo "::error::ARABA_KEYSTORE_PASSWORD ya da ARABA_KEYSTORE_BASE64 yanlış"; exit 1; }
+          echo "ARABA_KEYSTORE_FILE=$RUNNER_TEMP/arababaslatici.p12" >> "$GITHUB_ENV"
+
+      - name: Derle ve lint
+        env:
+          ARABA_KEYSTORE_PASSWORD: ${{ secrets.ARABA_KEYSTORE_PASSWORD }}
+        run: ./gradlew --stacktrace assembleRelease lint
+
+      - name: APK
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk ArabaBaslatici.apk
+          ls -l ArabaBaslatici.apk | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: araba-baslatici-apk
+          path: ArabaBaslatici.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raporlar
+          path: app/build/reports/
+          if-no-files-found: ignore
+
+      - name: GitHub Release (v* etiketi)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NAME=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
+          [ "${GITHUB_REF_NAME#v}" = "$NAME" ] || { echo "::error::Etiket $GITHUB_REF_NAME, versionName $NAME ile uyuşmuyor"; exit 1; }
+          [ -n "$ARABA_KEYSTORE_FILE" ] || { echo "::error::İmza anahtarı yok, Release yayınlanmadı"; exit 1; }
+          cp ArabaBaslatici.apk "ArabaBaslatici-$NAME.apk"
+          gh release create "$GITHUB_REF_NAME" "ArabaBaslatici-$NAME.apk" --title "Araba Başlatıcı $NAME" --generate-notes

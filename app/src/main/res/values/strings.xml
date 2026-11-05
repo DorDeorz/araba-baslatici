@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ayar_kapatici_aciklama">PhoneAuto\'yu kapattığında arkada kalan Android Auto ayarlarını kapatır. Yalnızca hangi ekranın açıldığını görür, ekran içeriğini okumaz.</string>
+</resources>
