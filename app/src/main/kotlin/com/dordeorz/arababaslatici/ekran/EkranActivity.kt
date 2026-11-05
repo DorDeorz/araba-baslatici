@@ -101,6 +101,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             val ilk = c?.ilkKareMs?.takeIf { it > 0 }?.let { "${it - acilis} ms" } ?: "—"
             bilgi.text = if (sayi == 0) sonDurum
                 else "$fps fps · ilk görüntü $ilk · bağlantı ${oturum.baglantiMs} ms\n${c?.codecAdi}"
+            if (sayi > 0) android.util.Log.i(AapTasima.TAG, "Ölçüm: $fps fps, toplam $sayi kare, ilk görüntü $ilk")
             ana.postDelayed(this, 1000)
         }
     }
