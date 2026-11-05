@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import java.net.SocketTimeoutException
+import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 
 /**
@@ -221,7 +222,7 @@ class AapOturum(
             cozucu = GoruntuCozucu(s, geometri.genislik, geometri.yukseklik) { veri ->
                 if (veri) onay(Kanal.GORUNTU)
             }
-            odakVer()
+            yazici.execute { odakVer() }
         }
     }
 
@@ -238,15 +239,19 @@ class AapOturum(
     fun dokun(eylem: Int, indeks: Int, noktalar: List<Triple<Int, Int, Int>>) {
         if (!acik) return
         val zaman = SystemClock.elapsedRealtimeNanos()
-        tasima.gonder(Kanal.GIRIS, 0x8001, Pb.yaz {
+        val veri = Pb.yaz {
             varint(1, zaman)
             mesaj(3) {
                 noktalar.forEach { (id, x, y) -> mesaj(1) { varint(1, x); varint(2, y); varint(3, id) } }
                 varint(2, indeks)
                 varint(3, eylem)
             }
-        })
+        }
+        // Ana iş parçacığında soket yazılamaz (NetworkOnMainThreadException): yazıcıya devret.
+        yazici.execute { try { tasima.gonder(Kanal.GIRIS, 0x8001, veri) } catch (e: Exception) { Log.w(TAG, "Dokunma gönderilemedi", e) } }
     }
+
+    private val yazici = Executors.newSingleThreadExecutor { r -> Thread(r, "AapDokunma").apply { priority = Thread.MAX_PRIORITY } }
 
     /** Kullanıcı çıktı: Android Auto'ya haber ver ve kapat. */
     fun kapat() {
@@ -261,6 +266,7 @@ class AapOturum(
 
     private fun temizle() {
         tasima.kapat()
+        yazici.shutdownNow()
         synchronized(this) { cozucu?.kapat(); cozucu = null }
         ses?.release()
         ses = null
