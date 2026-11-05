@@ -70,7 +70,7 @@ class AapTls(context: Context) {
                     agTampon.flip()
                     if (agTampon.hasRemaining()) gonder(ByteArray(agTampon.remaining()).also { agTampon.get(it) })
                 }
-                HandshakeStatus.NEED_UNWRAP, HandshakeStatus.NEED_UNWRAP_AGAIN -> {
+                HandshakeStatus.NEED_UNWRAP -> {
                     if (!gelen.hasRemaining()) gelen = ByteBuffer.wrap(al())
                     duzTampon.clear()
                     val s = motor.unwrap(gelen, duzTampon)
