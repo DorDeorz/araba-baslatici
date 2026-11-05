@@ -15,6 +15,7 @@ import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.dordeorz.arababaslatici.ekran.AapBaglanti
 import java.util.Locale
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
@@ -110,6 +111,24 @@ class MainActivity : Activity() {
         cihazListesi()
 
         dugme("Bildirimi şimdi dene", ustBosluk = dp(24)) { Bildirim.goster(this, null) }
+
+        baslik("Kendi ekranımız (geliştirme)")
+        yazi("Android Auto'nun ana birim sunucusuna bağlanıp el sıkışmayı dener. Önce sunucuyu "
+            + "başlat; PhoneAuto ya da Open Headunit o sırada bağlı olmasın.")
+        val sonuc = TextView(this)
+        dugme("Bağlantıyı dene") { b ->
+            b.isEnabled = false
+            sonuc.text = "Bağlanıyor…"
+            thread {
+                val s = AapBaglanti(this).dene()
+                runOnUiThread {
+                    b.isEnabled = true
+                    sonuc.text = (if (s.tamam) "✓ " else "✗ ") + s.mesaj +
+                        if (s.tamam) "\nTCP ${s.tcpMs} ms · sürüm ${s.surumMs} ms · TLS ${s.tlsMs} ms · ilk mesaj ${s.ilkMesajMs} ms" else ""
+                }
+            }
+        }
+        kok.addView(sonuc)
     }
 
     // Yalnızca ciz()'den, BLUETOOTH_CONNECT izni kontrol edildikten sonra çağrılır.

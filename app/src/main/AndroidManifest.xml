@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android Auto'nun ana birim sunucusuna (127.0.0.1:5277) bağlanmak için. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Bir kez adb ile verilir; PhoneAuto'nun erişilebilirlik servisini yeniden açmak için. -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"

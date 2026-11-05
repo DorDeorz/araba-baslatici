@@ -123,7 +123,7 @@ Kaynak adları Android Auto güncellemelerinde değişebilir; kod, ad bulunamazs
 
 ## 5. Şu anki uygulama: Araba Başlatıcı (bu depo)
 
-`com.dordeorz.arababaslatici`, sürüm 1.6.1, **Kotlin** (`app/src/main/kotlin/`), min SDK 33, hedef 36.
+`com.dordeorz.arababaslatici`, sürüm 1.7.0, **Kotlin** (`app/src/main/kotlin/`), min SDK 33, hedef 36.
 1.5.0 (Java) arabada uçtan uca doğrulandı; 1.6.0 aynı davranışın Kotlin'e çevrilmiş hâli.
 
 | Sınıf | Görevi |
