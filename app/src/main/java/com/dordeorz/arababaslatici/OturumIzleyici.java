@@ -137,8 +137,13 @@ public class OturumIzleyici extends NotificationListenerService {
             Notification n = s.getNotification();
             if (!GEARHEAD.equals(s.getPackageName()) || !SUNUCU_KANALI.equals(n.getChannelId())
                     || n.actions == null) continue;
+            String durdurYazisi = durdurYazisi();
             for (Notification.Action a : n.actions) {
-                if (a.title != null && a.title.toString().equalsIgnoreCase("Stop") && a.actionIntent != null) {
+                // Tek eylem varsa o Stop'tur; birden çoksa yazısına göre seç.
+                boolean dogruEylem = n.actions.length == 1 || (a.title != null
+                        && (a.title.toString().equalsIgnoreCase(durdurYazisi)
+                            || a.title.toString().equalsIgnoreCase("Stop")));
+                if (dogruEylem && a.actionIntent != null) {
                     try {
                         a.actionIntent.send();
                         Log.i(TAG, "Ana birim sunucusu kapatıldı");
@@ -150,6 +155,19 @@ public class OturumIzleyici extends NotificationListenerService {
             }
         }
         return false;
+    }
+
+    /**
+     * Bildirimdeki "Stop" düğmesinin Android Auto'nun o anki dilindeki yazısı. Kaynak adı
+     * bulunamazsa (Android Auto güncellemesi) İngilizceye düşer.
+     */
+    private String durdurYazisi() {
+        try {
+            android.content.res.Resources r = getPackageManager().getResourcesForApplication(GEARHEAD);
+            int id = r.getIdentifier("developer_head_unit_server_notification_stop", "string", GEARHEAD);
+            if (id != 0) return r.getString(id);
+        } catch (Exception ignored) {}
+        return "Stop";
     }
 
     /** Araba Bluetooth'u kopunca: oturum bitmiş say, beklemeden kapat. */

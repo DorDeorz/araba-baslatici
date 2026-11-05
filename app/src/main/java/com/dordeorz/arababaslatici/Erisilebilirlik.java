@@ -73,7 +73,11 @@ final class Erisilebilirlik {
         return kendiServisiCalisiyor(c);
     }
 
-    private static void yenidenAc(Context c, String oneki, String bilesen) {
+    /**
+     * Ayar satırını okuyup geri yazar; birden çok iş parçacığı (BaslatActivity, MainActivity,
+     * OturumIzleyici) aynı anda çağırabildiği için birbirinin değişikliğini silmesinler diye kilitli.
+     */
+    private static synchronized void yenidenAc(Context c, String oneki, String bilesen) {
         if (!yetkiVar(c)) return;
         ContentResolver cr = c.getContentResolver();
         String mevcut = Settings.Secure.getString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);

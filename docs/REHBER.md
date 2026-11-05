@@ -123,7 +123,7 @@ Kaynak adları Android Auto güncellemelerinde değişebilir; kod, ad bulunamazs
 
 ## 5. Şu anki uygulama: Araba Başlatıcı (bu depo)
 
-`com.dordeorz.arababaslatici`, sürüm 1.5.0, Java, min SDK 33, hedef 36. Arabada uçtan uca doğrulandı.
+`com.dordeorz.arababaslatici`, sürüm 1.5.1, Java, min SDK 33, hedef 36. Arabada uçtan uca doğrulandı.
 
 | Sınıf | Görevi |
 |---|---|

@@ -11,6 +11,8 @@
 
     <queries>
         <package android:name="com.tarplay.phonescreen" />
+        <!-- Bildirimdeki "Stop" yazısını Android Auto'nun dilinde okumak için. -->
+        <package android:name="com.google.android.projection.gearhead" />
     </queries>
 
     <application
