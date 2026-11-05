@@ -32,6 +32,7 @@ class GoruntuCozucu(
     private val cikisIs = HandlerThread("GoruntuCikis", android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY).apply { start() }
     private var codec: MediaCodec? = null
     @Volatile private var calisiyor = true
+    private var anahtarBekle = true
 
     /** Ekrana basılan kare sayısı (fps ölçümü için). */
     val basilan = AtomicInteger()
@@ -80,6 +81,11 @@ class GoruntuCozucu(
             val c = baslat().also { codec = it }
             while (calisiyor) {
                 val k = kuyruk.poll(200, TimeUnit.MILLISECONDS) ?: continue
+                // Yeni çözücüye ilk anahtar kareden önceki kareler verilirse görüntü bozulur.
+                if (!k.ayar && anahtarBekle) {
+                    if (!anahtarKareMi(k.b, k.bas, k.uzunluk)) { bitti(true); continue }
+                    anahtarBekle = false
+                }
                 var i: Int? = null
                 while (calisiyor && i == null) i = bosGirisler.poll(200, TimeUnit.MILLISECONDS)
                 if (i == null) { bitti(!k.ayar); break }
@@ -94,6 +100,22 @@ class GoruntuCozucu(
         } catch (e: Exception) {
             Log.w(TAG, "Görüntü döngüsü durdu", e)
         }
+    }
+
+    /** H.264 kare SPS ya da IDR dilimi içeriyor mu (ilk dilime kadar bakar). */
+    private fun anahtarKareMi(b: ByteArray, bas: Int, uzunluk: Int): Boolean {
+        val son = bas + uzunluk
+        var i = bas
+        while (i + 3 < son) {
+            if (b[i].toInt() == 0 && b[i + 1].toInt() == 0 && b[i + 2].toInt() == 1) {
+                when (b[i + 3].toInt() and 0x1F) {
+                    5, 7 -> return true
+                    1 -> return false
+                }
+                i += 3
+            } else i++
+        }
+        return false
     }
 
     fun kapat() {

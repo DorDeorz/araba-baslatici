@@ -32,6 +32,8 @@ class AapOturum(
     private var okuyucu: Thread? = null
 
     private val oturumNo = IntArray(16)
+    /** Android Auto'nun gönderdiği son SPS/PPS; yüzey yenilenince yeni çözücüye tekrar verilir. */
+    @Volatile private var sonAyar: ByteArray? = null
     @Volatile private var goruntuHazir = false // MEDIA_SETUP geldi
     @Volatile private var yuzey: Surface? = null
     @Volatile var cozucu: GoruntuCozucu? = null; private set
@@ -149,10 +151,15 @@ class AapOturum(
         when (m.tip) {
             0, 1 -> {
                 val c = cozucu
-                if (c == null) { if (m.tip == 0) onay(m.kanal); return }
+                if (c == null) {
+                    if (m.tip == 1) sonAyar = m.veri.copyOfRange(m.bas, m.veri.size)
+                    if (m.tip == 0) onay(m.kanal)
+                    return
+                }
                 if (ilkVeriMs < 0) ilkVeriMs = SystemClock.elapsedRealtime() - t0
                 // DATA: [8 bayt zaman damgası][H.264]; CODEC_CONFIG: doğrudan SPS/PPS.
                 val bas = if (m.tip == 0) m.bas + 8 else m.bas
+                if (m.tip == 1) sonAyar = m.veri.copyOfRange(bas, m.veri.size)
                 c.besle(m.veri, bas, m.veri.size - bas, ayar = m.tip == 1)
             }
             0x8000 -> {
@@ -221,7 +228,8 @@ class AapOturum(
         if (s != null) {
             cozucu = GoruntuCozucu(s, geometri.genislik, geometri.yukseklik) { veri ->
                 if (veri) onay(Kanal.GORUNTU)
-            }
+            }.also { c -> sonAyar?.let { c.besle(it, 0, it.size, ayar = true) } }
+            // Yeni çözücü anahtar kare bekler; istenmemiş odak bildirimi Android Auto'dan onu ister.
             yazici.execute { odakVer() }
         }
     }
