@@ -319,6 +319,46 @@ bağlantı yolu var. Bunun yerine iki adım öneriyorum:
    MediaCodec/AudioTrack yolu), `input/`, `ssl/`. USB, kablosuz, ana ekran ve FFmpeg dışarıda kalır.
    AGPL yükümlülükleri yine geçerli olur.
 
+#### Aşama 1 için bağımlılık ölçümü ve önerilen yol (5 Kasım 2026)
+
+Karar (kullanıcı): ara adım (Open Headunit'i dışarıdan açtırmak) **atlanıyor**; doğrudan tek uygulama.
+
+Open Headunit'te `aap/AapTransport.kt` ve `aap/AapProjectionActivity.kt`'den başlayıp başvurulan
+sınıfları izleyen bir betikle ölçüldü:
+- Hiçbir şey kesilmeden: **377 dosya, ~200 bin satır**. Her şey `App`/`AppComponent` tekilleri ve
+  `utils/Settings.kt` üzerinden USB, kablosuz, ana ekran ve otomasyon koduna bağlanıyor.
+- USB/kablosuz/Bluetooth/ana ekran/otomasyon/konum ve `Settings` zorla kesilse bile: **~150 dosya,
+  ~33 bin satır** (protobuf hariç), üstelik kesilen yerlere hâlâ başvuru var.
+Yani "yalnızca 5277 yolunu kopyalamak" basit bir dosya seçimi değil, ağır bir ameliyat.
+
+**Önerilen yol: kendi yalın AAP istemcimizi yazmak, Open Headunit'i başvuru kaynağı olarak kullanmak.**
+- Protokol tanımları: OH'nin `app/src/main/proto/*.proto` dosyaları (1512 satır) alınır,
+  `protobuf-lite` ile derlenir. Üretilmiş 124 bin satırlık Java depoya girmez.
+- Yazılacak çekirdek (tahmini 3–5 bin satır Kotlin): TCP 127.0.0.1:5277, sürüm el sıkışması,
+  TLS (`SSLEngine`, `res/raw/cert` + `privkey`), çerçeveleme ve parçalı mesaj birleştirme,
+  kontrol kanalı (service discovery, kanal açma, ping, ses/video odağı, byebye), video kanalı →
+  MediaCodec H.264 → SurfaceView, dokunma, mikrofon, sensörler (DRIVING_STATUS=UNRESTRICTED, NIGHT).
+  Self-Mode'da medya sesi Android Auto'dan doğrudan çalıyor; ses sink'leri ilk sürümde gerekmeyebilir
+  (OH Self-Mode'da medya/konuşma sink'lerini düşürüyor, doğrulanacak).
+- **Çentik payı** bedava gibi: `media.proto`'daki `UiConfig.content_insets` (ya da
+  `stable_content_insets`) AA'ya arayüzü içeriden kaydırmasını söyler, arka plan tam ekran kalır
+  (PhoneAuto'nun yaptığı). OH yalnızca `margins` gönderiyor (`UpdateUiConfigRequest.kt`), bütün
+  görüntüyü küçültüyor. Değer `WindowInsets.displayCutout` ile otomatik, ayarlardan elle.
+- Lisans: OH'den alınan .proto'lar ve uyarlanan mantık nedeniyle uygulama AGPL-3.0 türevi sayılır;
+  depo gizli kaldıkça sorun yok, `LICENSE` ve kaynak bilgisi Aşama 1'de eklenir.
+
+Alternatif (önerilmiyor): OH'yi bütün olarak `:ekran` modülü yapmak. Hemen çalışır ama 200 bin satır,
+NDK/FFmpeg `.so`, AGP 8→9 uyarlaması ve bize gerekmeyen her şey gelir; çentik, çıkış, klavye gibi
+istekleri OH'nin karmaşık koduna işlemek gerekir.
+
+Aşama 1'in PR'ları (öneri):
+1. `.proto` + protobuf-lite derlemesi, TCP + sürüm + TLS el sıkışması; "bağlandı" logu (telefonda test).
+2. Kontrol kanalı + video → ekranda Android Auto görüntüsü (yatay, 1920×1080, DPI ayarlı).
+3. Dokunma, gece/sürüş sensörleri, mikrofon; tek dokunuşla çıkış + sunucuyu kapatma.
+4. Sunucuyu dilden bağımsız başlatma (Aşama 2) ve Bluetooth sorusundan bizim ekranımızı açma;
+   PhoneAuto bağımlılığı kalkar.
+5. Çentik payı (`content_insets`), ayarlar ekranı, klavye.
+
 **Aşama 1 — Depoya alma ve derleme**
 - Open Headunit kodunu bu depoya ayrı modül olarak al (ör. `:ekran`), CI'da derlensin.
 - Paket adı `com.dordeorz.arababaslatici` altında tek uygulama mı, ayrı uygulama mı? Öneri: tek
