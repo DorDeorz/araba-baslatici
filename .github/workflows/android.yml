@@ -25,6 +25,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.ARABA_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ARABA_KEYSTORE_PASSWORD }}
         run: |
+          echo "ARABA_KEYSTORE_BASE64 uzunluğu: ${#KEYSTORE_BASE64}, ARABA_KEYSTORE_PASSWORD uzunluğu: ${#KEYSTORE_PASSWORD}"
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "İmza anahtarı Secret'ı yok: APK geçici debug anahtarıyla imzalandı, telefona kurma" >> "$GITHUB_STEP_SUMMARY"
             exit 0
