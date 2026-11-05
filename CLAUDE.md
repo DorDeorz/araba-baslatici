@@ -9,6 +9,7 @@ aşama aşama plan orada.
 
 Kısa kurallar:
 - Kullanıcıyla Türkçe konuş.
+- Kod dili **Kotlin** (`app/src/main/kotlin/`); Java kullanma.
 - Derleme GitHub Actions'ta (`.github/workflows/android.yml`); telefona `bash kur.sh` ile kur.
 - Yerel derleme: `JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease`.
 - Kullanıcının uygulamalarını kaldırmadan, telefon ayarlarını değiştirmeden önce sor;

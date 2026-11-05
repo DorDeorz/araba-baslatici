@@ -123,7 +123,8 @@ Kaynak adları Android Auto güncellemelerinde değişebilir; kod, ad bulunamazs
 
 ## 5. Şu anki uygulama: Araba Başlatıcı (bu depo)
 
-`com.dordeorz.arababaslatici`, sürüm 1.5.1, Java, min SDK 33, hedef 36. Arabada uçtan uca doğrulandı.
+`com.dordeorz.arababaslatici`, sürüm 1.6.1, **Kotlin** (`app/src/main/kotlin/`), min SDK 33, hedef 36.
+1.5.0 (Java) arabada uçtan uca doğrulandı; 1.6.0 aynı davranışın Kotlin'e çevrilmiş hâli.
 
 | Sınıf | Görevi |
 |---|---|
@@ -139,7 +140,8 @@ Kaynak adları Android Auto güncellemelerinde değişebilir; kod, ad bulunamazs
 `BLUETOOTH_CONNECT`, `POST_NOTIFICATIONS`, `WRITE_SECURE_SETTINGS`, bildirim dinleyicisi
 (`cmd notification allow_listener`), Android Auto dilini İngilizce yapar, uygulamayı açar.
 
-**Derleme:** Gradle 9.6, AGP 9.4, R8 açık (AGP 9 Kotlin stdlib'i kendiliğinden ekliyor; R8 olmadan APK 2 MB).
+**Derleme:** Gradle 9.6, AGP 9.4 (dahili Kotlin desteği; Kotlin 2.4.10 kök `build.gradle.kts`'te
+sabitli), R8 açık (R8 olmadan Kotlin kütüphanesiyle APK 2 MB, R8 ile ~50 KB).
 GitHub Actions her `main` push'unda imzalı APK üretir (artifact `araba-baslatici-apk`);
 `vX.Y.Z` etiketi (versionName ile aynı) Release yayınlar. Günlükte Secret uzunlukları yazılır (5728 / 32 beklenir).
 
@@ -355,6 +357,9 @@ bağlantı yolu var. Bunun yerine iki adım öneriyorum:
 ## 7. Claude ile çalışma kuralları
 
 - Kullanıcıyla **Türkçe** konuş; uygulama arayüzü Türkçe.
+- **Kod dili Kotlin.** Yeni kodu Java ile yazma. (İlk prototip Gradle'sız derlendiği için Java'ydı;
+  1.6.0'da Kotlin'e çevrildi.) Open Headunit de büyük ölçüde Kotlin, kullanıcının diğer projeleri
+  (AdımSayar) Kotlin + Jetpack Compose. Arayüz büyüdüğünde Compose'a geçilebilir.
 - Değişiklikler bu depoda; derleme GitHub Actions'ta. Kurulum `bash kur.sh` ile.
 - Telefona `adb install -r` ile kur. Kullanıcının uygulamalarını kaldırma, verisini silme,
   telefon ayarlarını değiştirme işlemlerini **önce sor**. PhoneAuto'yu force-stop etme.
