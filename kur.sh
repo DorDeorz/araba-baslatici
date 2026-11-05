@@ -29,6 +29,7 @@ fi
 # Çalışma izinleri (normalde uygulama ilk açılışta sorar).
 "$ADB" shell pm grant $PKG android.permission.BLUETOOTH_CONNECT
 "$ADB" shell pm grant $PKG android.permission.POST_NOTIFICATIONS
+"$ADB" shell pm grant $PKG android.permission.RECORD_AUDIO
 # Erişilebilirlik servislerini (PhoneAuto'nunki ve kendi servisimiz) kendisi açabilsin diye.
 "$ADB" shell pm grant $PKG android.permission.WRITE_SECURE_SETTINGS
 # Android Auto sunucusunu otomatik kapatmak için bildirim erişimi.

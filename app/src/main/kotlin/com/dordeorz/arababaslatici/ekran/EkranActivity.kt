@@ -1,6 +1,9 @@
 package com.dordeorz.arababaslatici.ekran
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import com.dordeorz.arababaslatici.OturumIzleyici
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -58,8 +61,9 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         bilgi = TextView(this).apply {
             setTextColor(Color.WHITE)
             setBackgroundColor(0x80000000.toInt())
-            textSize = 12f
-            setPadding(12, 6, 12, 6)
+            textSize = 10f
+            alpha = 0.8f
+            setPadding(8, 4, 8, 4)
         }
         val kok = object : FrameLayout(this) {
             override fun dispatchTouchEvent(e: MotionEvent): Boolean { dokunma(e); return true }
@@ -75,7 +79,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             })
             addView(bilgi, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP or Gravity.END))
+                Gravity.BOTTOM or Gravity.END))
         }
         setContentView(kok)
         window.insetsController?.apply {
@@ -87,9 +91,9 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         oturum.baslat()
         ana.post(sayac)
         // Geri: oturumu kapatıp çık (tek dokunuşla çıkış düğmesi sonraki adımda).
-        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
-            oturum.kapat()
-            finish()
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { cik() }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1)
         }
     }
 
@@ -107,6 +111,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             bilgi.text = if (sayi == 0) sonDurum
                 else "$fps fps (gelen $gelenFps, bekleyen ${c?.bekleyen}) · ${geometri.yukseklik}p · ilk görüntü $ilk · bağlantı ${oturum.baglantiMs} ms\n${c?.codecAdi}"
             if (sayi > 0) android.util.Log.i(AapTasima.TAG, "Ölçüm: ${geometri.yukseklik}p ekrana $fps fps, AA'dan gelen $gelenFps, bekleyen ${c?.bekleyen}, toplam $sayi kare, ilk görüntü $ilk")
+            // Bilgi yazısı arayüzün üstüne binmesin: ilk 10 sn'den sonra gizle (ölçüm kayda yazılmaya devam eder).
+            if (sayi > 0 && SystemClock.elapsedRealtime() - acilis > 10_000) bilgi.visibility = android.view.View.GONE
             ana.postDelayed(this, 1000)
         }
     }
@@ -133,10 +139,27 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
 
     override fun durum(metin: String) = ana.post { sonDurum = metin; bilgi.text = metin }.let {}
 
-    override fun bitti(neden: String) = ana.post {
-        android.widget.Toast.makeText(this, neden, android.widget.Toast.LENGTH_LONG).show()
-        finish()
+    override fun bitti(neden: String, kullaniciCikti: Boolean) = ana.post {
+        if (kullaniciCikti) cik()
+        else {
+            android.widget.Toast.makeText(this, neden, android.widget.Toast.LENGTH_LONG).show()
+            finish()
+        }
     }.let {}
+
+    /**
+     * Tek dokunuşla tam çıkış (Android Auto'daki "Çık" ya da geri hareketi): oturumu kapatır,
+     * ana birim sunucusunu durdurur ve ekranı son uygulamalardan da kaldırır.
+     */
+    private fun cik() {
+        if (cikiliyor) return
+        cikiliyor = true
+        oturum.kapat()
+        val uygulama = applicationContext
+        ana.postDelayed({ OturumIzleyici.arabadanAyrildi(uygulama) }, 400)
+        finishAndRemoveTask()
+    }
+    private var cikiliyor = false
 
     override fun onDestroy() {
         ana.removeCallbacks(sayac)

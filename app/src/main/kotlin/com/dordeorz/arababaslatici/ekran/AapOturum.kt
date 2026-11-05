@@ -24,7 +24,7 @@ class AapOturum(
     interface Dinleyici {
         fun durum(metin: String)
         /** Android Auto kendi "çık" düğmesine basıldığını bildirdi ya da oturum bitti. */
-        fun bitti(neden: String)
+        fun bitti(neden: String, kullaniciCikti: Boolean)
     }
 
     private val tasima = AapTasima(context)
@@ -67,7 +67,7 @@ class AapOturum(
         } finally {
             val beklenmedik = acik
             temizle()
-            if (beklenmedik) dinleyici.bitti(neden)
+            if (beklenmedik) dinleyici.bitti(neden, kullaniciCikti = false)
         }
     }
 
@@ -97,7 +97,7 @@ class AapOturum(
             15 -> { // güle güle isteği
                 tasima.gonder(0, 16, Pb.yaz {})
                 acik = false
-                dinleyici.bitti("Android Auto oturumu kapattı")
+                dinleyici.bitti("Android Auto oturumu kapattı", kullaniciCikti = true)
             }
             16 -> acik = false
             18 -> { // ses odağı isteği: hep ver
@@ -171,8 +171,10 @@ class AapOturum(
             0x8002 -> Unit
             0x8007 -> { // görüntü odağı isteği; NATIVE (2) = AA'daki çık düğmesi
                 if (m.pb().int(2) == 2) {
+                    // Android Auto'daki "Çık": PhoneAuto'daki X gibi her şeyi kapat.
                     acik = false
-                    dinleyici.bitti("Android Auto'dan çıkıldı")
+                    dinleyici.bitti("Android Auto'dan çıkıldı", kullaniciCikti = true)
+                    try { tasima.gonder(0, 15, Pb.yaz { varint(1, 1) }) } catch (_: Exception) {}
                     tasima.kapat()
                 } else odakVer()
             }
@@ -195,10 +197,30 @@ class AapOturum(
         }
     }
 
+    private val mikrofon = Mikrofon { veri ->
+        if (acik) try { tasima.gonder(Kanal.MIKROFON, 0, veri) } catch (_: Exception) {}
+    }
+    private var mikrofonOturumu = 0
+
     private fun mikrofon(m: AapTasima.Mesaj) {
-        // Mikrofon bir sonraki adımda; şimdilik isteği reddet ki Android Auto beklemesin.
-        if (m.tip == 0x8005 && m.pb().bool(1)) {
-            tasima.gonder(m.kanal, 0x8006, Pb.yaz { varint(1, -7); varint(2, 0) })
+        when (m.tip) {
+            0x8005 -> { // mikrofon isteği: aç (alan 1), en fazla onaysız (alan 4)
+                val p = m.pb()
+                if (p.bool(1)) {
+                    val izin = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+                    val tamam = izin && mikrofon.ac(if (p.varMi(4)) p.int(4) else 2)
+                    if (!izin) Log.w(TAG, "Mikrofon izni yok")
+                    mikrofonOturumu++
+                    tasima.gonder(m.kanal, 0x8006, Pb.yaz {
+                        varint(1, if (tamam) 0 else -7); varint(2, mikrofonOturumu)
+                    })
+                } else {
+                    mikrofon.kapat()
+                    tasima.gonder(m.kanal, 0x8006, Pb.yaz { varint(1, 0); varint(2, mikrofonOturumu) })
+                }
+            }
+            0x8004 -> mikrofon.onay(m.pb().int(2, 1))
         }
     }
 
@@ -275,6 +297,7 @@ class AapOturum(
     private fun temizle() {
         tasima.kapat()
         yazici.shutdownNow()
+        mikrofon.kapat()
         synchronized(this) { cozucu?.kapat(); cozucu = null }
         ses?.release()
         ses = null

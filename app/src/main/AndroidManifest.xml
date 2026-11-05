@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android Auto'nun ana birim sunucusuna (127.0.0.1:5277) bağlanmak için. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android Auto sesli komutları için mikrofon. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Bir kez adb ile verilir; PhoneAuto'nun erişilebilirlik servisini yeniden açmak için. -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"
