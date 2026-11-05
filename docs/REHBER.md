@@ -273,6 +273,39 @@ Deneme:
       ekran çözünürlüğü/DPI satırlarını not et.
 Sonuçları PhoneAuto ile yan yana bu bölüme yaz.
 
+**Telefon testi sonuçları (5 Kasım 2026, Open Headunit 3.5.0 GitHub sürümü, AA 17.9).**
+
+| Konu | Open Headunit 3.5.0 Self-Mode | PhoneAuto |
+|---|---|---|
+| Sunucu kapalıyken | 5277'ye bağlanamıyor, uyarı verip AA ayarlarını açıyor; menüye basmıyor, sunucu sonradan açılınca **yeniden denemiyor** (15 sn beklendi) | Erişilebilirlik servisiyle sunucuyu kendisi başlatıyor (yalnızca İngilizce) |
+| Sunucu açıkken | Bağlantı 0,1 sn, TLS 0,7–1,0 sn (protokol 1.7, hata yok), ilk görüntü yatay 1,9 sn / dikey 2,75 sn | Bağlantı ~0,02 sn; pratikte aynı hız |
+| `headunit://selfmode` | Çalışıyor: açılıp kendiliğinden AA'ya geçiyor, komuttan ilk görüntüye 2,3–3,5 sn | — |
+| Görüntü (yatay) | 1920×1080, tam ekran, çözme 45–49 fps, ekranda ~33 fps, takılma yok | 1920×1080; kullanıcıya göre aynı |
+| Dokunma / ses / mikrofon / gece | Hepsi çalışıyor; Self-Mode'da ses doğrudan telefondan çalıyor; gece modu kendiliğinden | Aynı |
+| Klavye | AA'nın telefon klavyesi ayrı tam ekran açılıyor, yazılabiliyor | Yazmaya izin vermiyordu |
+| Çıkış | Ekranda çıkış yok; son uygulamalardan kaydırmak oturumu bitirmiyor (`onTaskRemoved — attempting restart`), bildirimden Durdur da gerekiyor | Tek X (ama X içeriğin, ör. Spotify kartının üstünde duruyor) |
+| Sunucu çıkışta | Açık kalıyor | Açık kalıyor (Araba Başlatıcı kapatıyor) |
+| AA ayarları çıkışta | Arkada kalmıyor | Kalıyordu (AyarKapatici çözüyor) |
+| Çentik (yatay, solda) | Sol şerit kenara yapışık, çentiğin altına giriyor | AA'nın sol şeridi ~85 px sağa kaydırılmış |
+| DPI | 175/218/260/320 denendi; **260 iyi** | Loglamıyor; ekran karşılaştırmasına göre ~300–320 (tahmin) |
+| Dikey | Görüntü ve dokunma çalışıyor (kısa deneme) | Denenmedi |
+| Dayanıklılık | Radarbot kendi ekranını açınca projeksiyon arkaya düştü, OH kendiliğinden geri getirdi; kaydırılıp yeniden açılınca oturum kopmadı | — |
+
+Türkçe AA menü metinleri (Aşama 2 için): ⋮ = "Diğer seçenekler", öğe = "Ana birim sunucusunu başlat".
+OH'nin akışı dilden bağımsız (menüye kendisi basmadığı için).
+
+**Doğru başlatma sırası (doğrulandı):** sunucuyu başlat → AA ayarlarını GERİ ile kapat →
+`headunit://selfmode`. Türkçe AA ile bu sırayla sunucudan sonra 3,4 sn içinde bağlandı.
+Ters sırada (önce deep link) OH ayarlarda takılı kalıyor.
+
+**Kullanıcının kendi uygulamamızdan istekleri:**
+- Tek dokunuşla çıkış, içeriğin üstünde durmayan; oturumu, 5277 sunucusunu ve servisi birlikte kapatsın.
+- Yatayda çentik payı: görüntü tam ekran kalsın, yalnızca AA'nın arayüzü çentikten uzaklaşsın
+  (PhoneAuto gibi). Çentik tarafına göre otomatik, ayrıca elle ayarlanabilir.
+  (OH'deki `IMMERSIVE_WITH_NOTCH` bütün görüntüyü kaydırıyor, istenen bu değil.)
+- Klavye aynı ekranda açılsın.
+- Kapsamlı ayarlar ekranı: DPI (varsayılan ~260), çentik payı, yön, çıkış, erişilebilirlik servisi bölümü.
+
 **Öneri (Aşama 1 için).** Bütün uygulamayı `:ekran` modülü olarak almak ağır olur: 250 bin
 satırdan fazla kod, NDK, hazır `.so` dosyaları, AGP 8 ile 9 farkı ve ihtiyacımız olmayan pek çok
 bağlantı yolu var. Bunun yerine iki adım öneriyorum:
