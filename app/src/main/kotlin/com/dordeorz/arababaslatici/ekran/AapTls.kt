@@ -102,13 +102,23 @@ class AapTls(context: Context) {
         return cikti.toByteArray()
     }
 
-    /** Bir çerçevenin TLS baytlarını çözer; çerçeve tam kayıt(lar) taşır. */
+    private var artik = ByteArray(0)
+
+    /**
+     * Bir çerçevenin TLS baytlarını çözer. Normalde çerçeve tam kayıt(lar) taşır; yarım kalan
+     * kayıt olursa saklanır ve bir sonraki çağrıda başa eklenir.
+     */
     fun coz(tls: ByteArray): ByteArray {
-        val kaynak = ByteBuffer.wrap(tls)
-        val cikti = ByteArrayOutputStream()
+        val kaynak = ByteBuffer.wrap(if (artik.isEmpty()) tls else artik + tls)
+        artik = ByteArray(0)
+        val cikti = ByteArrayOutputStream(tls.size)
         while (kaynak.hasRemaining()) {
             duzTampon.clear()
             val s = motor.unwrap(kaynak, duzTampon)
+            if (s.status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                artik = ByteArray(kaynak.remaining()).also { kaynak.get(it) }
+                break
+            }
             if (s.status != SSLEngineResult.Status.OK) throw SSLException("unwrap: ${s.status}")
             cikti.write(duzTampon.array(), 0, duzTampon.position())
         }

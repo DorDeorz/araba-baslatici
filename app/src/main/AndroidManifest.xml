@@ -70,6 +70,15 @@
                 android:resource="@xml/ayar_kapatici" />
         </service>
 
+        <activity
+            android:name=".ekran.EkranActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|density|uiMode"
+            android:launchMode="singleTask"
+            android:resizeableActivity="false"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
         <receiver
             android:name=".IptalAlici"
             android:exported="false" />
