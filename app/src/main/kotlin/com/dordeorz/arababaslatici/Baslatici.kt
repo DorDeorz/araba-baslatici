@@ -6,6 +6,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import android.os.SystemClock
+import com.dordeorz.arababaslatici.ekran.AapOturum
 import com.dordeorz.arababaslatici.ekran.EkranActivity
 import kotlin.concurrent.thread
 
@@ -23,6 +25,15 @@ object Baslatici {
         Bildirim.iptal(app)
         OturumIzleyici.yenidenBagla(app)
         thread {
+            // Az önce çıkıldıysa Android Auto'nun eski oturumu bırakmasını bekle; yoksa
+            // "Already connected" ile çöküp takılı kalıyor.
+            while (true) {
+                val bekle = maxOf(AapOturum.sonKapanis + 3_000, OturumIzleyici.sonDurdurma + 6_000) -
+                    SystemClock.elapsedRealtime()
+                if (bekle <= 0) break
+                Log.i(TAG, "Android Auto'nun eski oturumu bırakması bekleniyor: $bekle ms")
+                SystemClock.sleep(bekle)
+            }
             if (OturumIzleyici.sunucuAcik() == true) {
                 Log.i(TAG, "Sunucu zaten açık, ekran açılıyor")
                 ana { ekraniAc(app) }

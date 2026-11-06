@@ -91,6 +91,7 @@ class OturumIzleyici : NotificationListenerService() {
                 if (dogruEylem && a.actionIntent != null) {
                     try {
                         a.actionIntent.send()
+                        sonDurdurma = android.os.SystemClock.elapsedRealtime()
                         Log.i(TAG, "Ana birim sunucusu kapatıldı")
                         return true
                     } catch (e: PendingIntent.CanceledException) {
@@ -164,6 +165,9 @@ class OturumIzleyici : NotificationListenerService() {
                 Log.w(TAG, "Dinleyici yeniden bağlanamadı", e)
             }
         }
+
+        /** Sunucunun en son kapatıldığı an (elapsedRealtime). Android Auto hemen ardından yeniden açılırsa takılıyor. */
+        @Volatile var sonDurdurma = 0L
 
         /** Araba Bluetooth'u kopunca: oturum bitmiş say, beklemeden kapat. */
         fun arabadanAyrildi(c: Context) {

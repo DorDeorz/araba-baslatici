@@ -239,7 +239,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         oturum.kapat()
         val uygulama = applicationContext
         if (Ayarlar.cikinciSunucuyuKapat(this)) {
-            ana.postDelayed({ OturumIzleyici.arabadanAyrildi(uygulama) }, 400)
+            // Hemen kapatınca Android Auto çöküp "Already connected" durumunda kalıyor: önce oturum kapansın.
+            ana.postDelayed({ OturumIzleyici.arabadanAyrildi(uygulama) }, 2000)
         }
         finishAndRemoveTask()
     }

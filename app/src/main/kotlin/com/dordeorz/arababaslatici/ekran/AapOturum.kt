@@ -330,12 +330,14 @@ class AapOturum(
         acik = false
         thread {
             try { tasima.gonder(0, 15, Pb.yaz { varint(1, 1) }) } catch (_: Exception) {}
-            SystemClock.sleep(150)
+            // Android Auto'nun oturumu kendi tarafında kapatmasına zaman tanı.
+            SystemClock.sleep(500)
             tasima.kapat()
         }
     }
 
     private fun temizle() {
+        if (bagli) sonKapanis = SystemClock.elapsedRealtime()
         bagli = false
         tasima.kapat()
         yazici.shutdownNow()
@@ -350,5 +352,8 @@ class AapOturum(
 
         /** Kendi ekranımız şu an Android Auto'ya bağlı mı (sunucu bu sırada kapatılmamalı). */
         @Volatile var bagli = false; private set
+
+        /** Son oturumun kapandığı an (elapsedRealtime). */
+        @Volatile var sonKapanis = 0L; private set
     }
 }
