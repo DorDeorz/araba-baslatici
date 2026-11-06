@@ -1,5 +1,6 @@
 package com.dordeorz.arababaslatici
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
@@ -17,12 +18,13 @@ class BaslatKutucugu : TileService() {
         }
     }
 
+    @SuppressLint("StartActivityAndCollapseDeprecated") // eski yol yalnızca Android 13 için
     override fun onClick() {
         val niyet = Intent(this, BaslatActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startActivityAndCollapse(PendingIntent.getActivity(this, 0, niyet, PendingIntent.FLAG_IMMUTABLE))
         } else {
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION") // yalnızca Android 13
             startActivityAndCollapse(niyet)
         }
     }
