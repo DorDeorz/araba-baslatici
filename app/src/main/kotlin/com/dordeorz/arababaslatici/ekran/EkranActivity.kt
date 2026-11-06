@@ -148,7 +148,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         val yer = Ayarlar.cikisYeri(this)
         val boyut = dp(40)
         val lp = cikis.layoutParams as FrameLayout.LayoutParams
-        val sagda = yer == 2 || (yer != 2 && sag > sol)
+        val sagda = yer == 2
         val serit = if (sagda) sag else sol
         val kenar = if (serit > boyut) (serit - boyut) / 2 else dp(8)
         lp.gravity = (if (sagda) Gravity.END else Gravity.START) or (if (yer == 1) Gravity.BOTTOM else Gravity.TOP)

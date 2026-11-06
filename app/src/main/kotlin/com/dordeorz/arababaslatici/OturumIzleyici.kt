@@ -1,5 +1,6 @@
 package com.dordeorz.arababaslatici
 
+import com.dordeorz.arababaslatici.ekran.AapOturum
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
@@ -20,7 +21,11 @@ import kotlin.concurrent.thread
 class OturumIzleyici : NotificationListenerService() {
 
     private val handler = Handler(Looper.getMainLooper())
-    private val kapat = Runnable { if (!oturumVar()) sunucuyuDurdur() }
+    private val kapat = Runnable {
+        // Kendi ekranımız bağlıyken Android Auto oturum bildirimini kaldırabiliyor; o zaman kapatma.
+        if (AapOturum.bagli) Log.i(TAG, "Oturum bildirimi yok ama ekranımız bağlı; sunucu açık kalıyor")
+        else if (!oturumVar()) sunucuyuDurdur()
+    }
 
     override fun onListenerConnected() {
         calisan = this

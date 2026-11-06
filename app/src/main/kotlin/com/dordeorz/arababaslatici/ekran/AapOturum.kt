@@ -63,6 +63,7 @@ class AapOturum(
                 }
             }
             baglantiMs = SystemClock.elapsedRealtime() - t0
+            bagli = true
             dinleyici.durum("Bağlandı (${baglantiMs} ms), görüntü bekleniyor…")
             tasima.okumaZamanAsimi(10_000)
             while (acik) isle(tasima.al())
@@ -281,10 +282,14 @@ class AapOturum(
     private fun arayuzAyari() {
         if (!goruntuHazir || !acik) return
         val sol = payS; val sag = payS2
+        // Kenar boşlukları (margins) servis keşfindekiyle aynı gönderilmeli: eksik kalırsa
+        // Android Auto onları 0 sayıp arayüzü bütün kareye yayar, üst/alt kırpılır.
+        val mY = geometri.boslukY / 2; val mG = geometri.boslukG / 2
         Log.i(TAG, "Arayüz ayarı: içerik kenar boşluğu sol=$sol sağ=$sag")
         try {
             tasima.gonder(Kanal.GORUNTU, 0x8009, Pb.yaz {
                 mesaj(1) {
+                    mesaj(1) { varint(1, mY); varint(2, geometri.boslukY - mY); varint(3, mG); varint(4, geometri.boslukG - mG) }
                     mesaj(2) { varint(1, 0); varint(2, 0); varint(3, sol); varint(4, sag) }
                     mesaj(3) { varint(1, 0); varint(2, 0); varint(3, sol); varint(4, sag) }
                 }
@@ -331,6 +336,7 @@ class AapOturum(
     }
 
     private fun temizle() {
+        bagli = false
         tasima.kapat()
         yazici.shutdownNow()
         mikrofon.kapat()
@@ -339,5 +345,10 @@ class AapOturum(
         ses = null
     }
 
-    companion object { const val TAG = AapTasima.TAG }
+    companion object {
+        const val TAG = AapTasima.TAG
+
+        /** Kendi ekranımız şu an Android Auto'ya bağlı mı (sunucu bu sırada kapatılmamalı). */
+        @Volatile var bagli = false; private set
+    }
 }
