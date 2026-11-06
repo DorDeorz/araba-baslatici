@@ -282,6 +282,8 @@ class AapOturum(
     private fun arayuzAyari() {
         if (!goruntuHazir || !acik) return
         val sol = payS; val sag = payS2
+        // Pay yoksa hiç gönderme (servis keşfindeki düzen geçerli kalır).
+        if (sol == 0 && sag == 0) return
         // Kenar boşlukları (margins) servis keşfindekiyle aynı gönderilmeli: eksik kalırsa
         // Android Auto onları 0 sayıp arayüzü bütün kareye yayar, üst/alt kırpılır.
         val mY = geometri.boslukY / 2; val mG = geometri.boslukG / 2

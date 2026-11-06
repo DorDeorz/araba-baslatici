@@ -84,12 +84,8 @@ fun AyarlarEkrani(
             Ayarlar.centik(c, centik)
         }
         if (centik > 0) {
-            KaydiriciSatiri("Pay genişliği", "Görüntü tam ekran kalır; yalnızca simgeler ve saat içeri alınır.",
+            KaydiriciSatiri("Pay genişliği", "Android Auto görüntüsü çentiğin yanından başlar; şerit siyah kalır.",
                 centik, 20..250, { "$it px" }) { centik = it; Ayarlar.centik(c, it) }
-        }
-        var siyah by remember { mutableStateOf(Ayarlar.centikSiyah(c)) }
-        SecimSatiri("Çentik şeridi", listOf("Siyah", "Android Auto duvar kağıdı"), if (siyah) 0 else 1) {
-            siyah = it == 0; Ayarlar.centikSiyah(c, siyah)
         }
         Ayrac()
 

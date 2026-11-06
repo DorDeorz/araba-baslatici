@@ -34,10 +34,6 @@ object Ayarlar {
     fun centik(c: Context) = prefs(c).getInt("centik", -1)
     fun centik(c: Context, v: Int) = prefs(c).edit().putInt("centik", v).apply()
 
-    /** Çentik şeridi siyah örtülsün mü (false: Android Auto'nun duvar kağıdı görünür). */
-    fun centikSiyah(c: Context) = prefs(c).getBoolean("centik_siyah", true)
-    fun centikSiyah(c: Context, v: Boolean) = prefs(c).edit().putBoolean("centik_siyah", v).apply()
-
     /** Çıkış (X) düğmesi: 0 sol üst, 1 sol alt, 2 sağ üst, 3 gizli. */
     fun cikisYeri(c: Context) = prefs(c).getInt("cikis_yeri", 0)
     fun cikisYeri(c: Context, v: Int) = prefs(c).edit().putInt("cikis_yeri", v).apply()

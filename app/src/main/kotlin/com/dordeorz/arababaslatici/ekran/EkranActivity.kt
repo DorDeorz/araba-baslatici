@@ -29,19 +29,20 @@ import kotlin.math.roundToInt
 
 /**
  * Kendi Android Auto ekranımız. Görüntü tam ekran; Android Auto'nun arayüz alanı ekranı
- * dolduracak şekilde ölçeklenir. Çentik tarafında Android Auto'ya içerik kenar boşluğu
- * bildirilir: arka plan tam ekran kalır, simgeler ve saat çentiğin altından çıkar.
- * O boş şeritte tek dokunuşla çıkış (X) düğmesi durur.
+ * dolduracak şekilde ölçeklenir. PhoneAuto gibi çentik şeridine çizilmez: görüntü çentiğin
+ * yanından başlar, şerit siyah kalır ve tek dokunuşla çıkış (X) düğmesi orada durur.
  */
 class EkranActivity : Activity(), AapOturum.Dinleyici {
     private lateinit var oturum: AapOturum
     private lateinit var geometri: Geometri
     private lateinit var bilgi: TextView
     private lateinit var cikis: TextView
-    /** Çentik şeritlerini örten siyah bantlar (Android Auto orada duvar kağıdını çizer). */
+    /** Çentik şeritlerini siyah tutan bantlar. */
     private val bantlar = arrayOfNulls<View>(2)
-    private lateinit var koseler: KoseMaskesi
-    private var aaDpi = 0
+    private lateinit var yuzey: SurfaceView
+    /** Çentik payı toplamı (ekran px) ve şu an soldaki kısmı: görüntü ve dokunma bu kadar kayar. */
+    private var pay = 0
+    private var solPay = 0
     private var olcek = 1f
     private val ana = Handler(Looper.getMainLooper())
     private var acilis = 0L
@@ -69,12 +70,23 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         val yuksek = if (intent.hasExtra(EK_720P)) !intent.getBooleanExtra(EK_720P, false)
             else Ayarlar.yuksekCozunurluk(this)
         val dpi = Ayarlar.dpi(this)
-        aaDpi = if (yuksek) dpi else dpi * 2 / 3
-        geometri = Geometri.hesapla(ekranG, ekranY, if (yuksek) dpi else dpi * 2 / 3, yuksek)
-        olcek = ekranG.toFloat() / geometri.arayuzG
+        // PhoneAuto gibi: çentik şeridine çizilmez; Android Auto kalan alanı doldurur. Android Auto'ya
+        // içerik payı bildirmek, o boşluğa duvar kağıdı çizip köşeleri yuvarlatmasına yol açıyordu.
+        // Pencere henüz dikeyken açılabilir: çentik o an üstte/altta görünür, onu da say.
+        val kesik0 = windowManager.currentWindowMetrics.windowInsets.displayCutout
+        val (s0, g0) = centikPayi(kesik0)
+        pay = if (s0 + g0 > 0) s0 + g0 else when (val a = Ayarlar.centik(this)) {
+            0 -> 0
+            in 1..Int.MAX_VALUE -> a
+            else -> maxOf(kesik0?.safeInsetTop ?: 0, kesik0?.safeInsetBottom ?: 0)
+        }
+        solPay = if (s0 + g0 > 0) s0 else pay
+        val kullanilan = ekranG - pay
+        geometri = Geometri.hesapla(kullanilan, ekranY, if (yuksek) dpi else dpi * 2 / 3, yuksek)
+        olcek = kullanilan.toFloat() / geometri.arayuzG
         bilgiAcik = Ayarlar.bilgiGoster(this)
 
-        val yuzey = SurfaceView(this)
+        yuzey = SurfaceView(this)
         yuzey.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(h: SurfaceHolder) = oturum.yuzeyAyarla(h.surface)
             override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, hh: Int) {}
@@ -109,14 +121,12 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             val g = (geometri.genislik * olcek).roundToInt()
             val y = (geometri.yukseklik * olcek).roundToInt()
             addView(yuzey, FrameLayout.LayoutParams(g, y).apply {
-                leftMargin = -(geometri.boslukG / 2 * olcek).roundToInt()
+                leftMargin = solPay - (geometri.boslukG / 2 * olcek).roundToInt()
                 topMargin = -(geometri.boslukY / 2 * olcek).roundToInt()
             })
             addView(bilgi, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM or Gravity.END))
-            koseler = KoseMaskesi(this@EkranActivity)
-            addView(koseler, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
             for (i in 0..1) {
                 val bant = View(this@EkranActivity).apply { setBackgroundColor(Color.BLACK); visibility = View.GONE }
                 bantlar[i] = bant
@@ -143,30 +153,36 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     }
 
     /**
-     * Çentik hangi taraftaysa (telefon çevrilince yer değiştirir) Android Auto'ya o tarafta içerik
-     * payı bildirilir ve X düğmesi o boş şeride konur.
+     * Çentik hangi taraftaysa (telefon çevrilince yer değiştirir) görüntü o kadar öbür yana kayar
+     * ve X düğmesi o boş şeride konur.
      */
-    private fun centikUygula(ins: WindowInsets) {
-        val kesik = ins.displayCutout
+    /** Ayara göre çentik payı (sol, sağ) ekran pikseli: otomatik, elle ya da kapalı. */
+    private fun centikPayi(kesik: android.view.DisplayCutout?): Pair<Int, Int> {
         val ayar = Ayarlar.centik(this)
-        var sol = 0
-        var sag = 0
-        when {
-            ayar == 0 -> Unit
-            ayar > 0 -> if ((kesik?.safeInsetRight ?: 0) > (kesik?.safeInsetLeft ?: 0)) sag = ayar else sol = ayar
-            else -> { sol = kesik?.safeInsetLeft ?: 0; sag = kesik?.safeInsetRight ?: 0 }
+        val l = kesik?.safeInsetLeft ?: 0
+        val r = kesik?.safeInsetRight ?: 0
+        return when {
+            ayar == 0 -> 0 to 0
+            ayar > 0 -> if (r > l) 0 to ayar else ayar to 0
+            else -> l to r
         }
+    }
+
+    private fun centikUygula(ins: WindowInsets) {
+        var (sol, sag) = centikPayi(ins.displayCutout)
+        // Telefon ters çevrilince çentik öbür tarafa geçer; genişlik aynı kalır, yalnızca kayma değişir.
+        if (sol + sag != pay) { if (sol > 0) sol = pay else sag = pay }
+        if (pay > 0 && sol == 0 && sag == 0) sol = pay
         Log.i(AapTasima.TAG, "Çentik payı (ekran px): sol=$sol sağ=$sag")
-        oturum.centikAyarla((sol / olcek).roundToInt(), (sag / olcek).roundToInt())
-        val siyah = Ayarlar.centikSiyah(this)
+        solPay = sol
+        val ylp = yuzey.layoutParams as FrameLayout.LayoutParams
+        ylp.leftMargin = sol - (geometri.boslukG / 2 * olcek).roundToInt()
+        yuzey.layoutParams = ylp
         listOf(sol, sag).forEachIndexed { i, en ->
             val bant = bantlar[i] ?: return@forEachIndexed
             bant.layoutParams = bant.layoutParams.apply { width = en }
-            bant.visibility = if (siyah && en > 0) View.VISIBLE else View.GONE
+            bant.visibility = if (en > 0) View.VISIBLE else View.GONE
         }
-        // Android Auto'nun köşe yarıçapı ~20 dp (kendi yoğunluğunda); ekranda ölçülen ~40 px'e denk.
-        val yaricap = 22f * aaDpi / 160f * olcek
-        koseler.ayarla(if (siyah) sol else 0, if (siyah) sag else 0, if (siyah) yaricap else 0f)
 
         // X: çentik şeridinin ortasına (şerit yoksa köşeye), seçilen köşede.
         val yer = Ayarlar.cikisYeri(this)
@@ -236,7 +252,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         val noktalar = List(e.pointerCount) { i ->
             Triple(
                 e.getPointerId(i),
-                (e.getX(i) / olcek).roundToInt().coerceIn(0, geometri.arayuzG),
+                ((e.getX(i) - solPay) / olcek).roundToInt().coerceIn(0, geometri.arayuzG),
                 (e.getY(i) / olcek).roundToInt().coerceIn(0, geometri.arayuzY),
             )
         }
