@@ -423,8 +423,8 @@ sunucu başlatma.
 ### Test listesi (her aşama sonunda telefonda)
 
 - [x] Arabaya bağlanınca bildirim geliyor; Başlat'a basınca Android Auto açılıyor.
-- [ ] "Doğrudan başlat" seçiliyken arabaya bağlanınca bildirimsiz açılıyor.
-- [ ] Ana ekran widget'ı ve hızlı ayarlar kutucuğu başlatıyor.
+- [x] "Doğrudan başlat" seçiliyken arabaya bağlanınca bildirimsiz açılıyor.
+- [x] Ana ekran widget'ı ve hızlı ayarlar kutucuğu başlatıyor.
 - [x] Android Auto Türkçeyken de sunucu kendiliğinden başlıyor.
 - [x] Sunucu başlatıldıktan sonra Android Auto ayarları arkada kalmıyor.
 - [x] Çıkışta ana ekrana dönülüyor.
