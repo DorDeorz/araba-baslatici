@@ -40,6 +40,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     private lateinit var cikis: TextView
     /** Çentik şeritlerini örten siyah bantlar (Android Auto orada duvar kağıdını çizer). */
     private val bantlar = arrayOfNulls<View>(2)
+    private lateinit var koseler: KoseMaskesi
+    private var aaDpi = 0
     private var olcek = 1f
     private val ana = Handler(Looper.getMainLooper())
     private var acilis = 0L
@@ -67,6 +69,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         val yuksek = if (intent.hasExtra(EK_720P)) !intent.getBooleanExtra(EK_720P, false)
             else Ayarlar.yuksekCozunurluk(this)
         val dpi = Ayarlar.dpi(this)
+        aaDpi = if (yuksek) dpi else dpi * 2 / 3
         geometri = Geometri.hesapla(ekranG, ekranY, if (yuksek) dpi else dpi * 2 / 3, yuksek)
         olcek = ekranG.toFloat() / geometri.arayuzG
         bilgiAcik = Ayarlar.bilgiGoster(this)
@@ -112,6 +115,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             addView(bilgi, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM or Gravity.END))
+            koseler = KoseMaskesi(this@EkranActivity)
+            addView(koseler, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
             for (i in 0..1) {
                 val bant = View(this@EkranActivity).apply { setBackgroundColor(Color.BLACK); visibility = View.GONE }
                 bantlar[i] = bant
@@ -159,6 +164,9 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             bant.layoutParams = bant.layoutParams.apply { width = en }
             bant.visibility = if (siyah && en > 0) View.VISIBLE else View.GONE
         }
+        // Android Auto'nun köşe yarıçapı ~20 dp (kendi yoğunluğunda); ekranda ölçülen ~40 px'e denk.
+        val yaricap = 22f * aaDpi / 160f * olcek
+        koseler.ayarla(if (siyah) sol else 0, if (siyah) sag else 0, if (siyah) yaricap else 0f)
 
         // X: çentik şeridinin ortasına (şerit yoksa köşeye), seçilen köşede.
         val yer = Ayarlar.cikisYeri(this)

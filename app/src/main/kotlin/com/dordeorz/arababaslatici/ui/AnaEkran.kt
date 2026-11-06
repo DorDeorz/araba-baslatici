@@ -216,6 +216,8 @@ private fun BolumBasligiSade(metin: String) {
 fun Karsilama(yenile: Int, ayarlariAc: () -> Unit, devam: () -> Unit) {
     val c = LocalContext.current
     val adimlar = remember(yenile) { hazirlik(c, ayarlariAc) }
+    Column(Modifier.fillMaxSize()) {
+    Box(Modifier.weight(1f)) {
     Sayfa("Hoş geldin") {
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
@@ -232,11 +234,22 @@ fun Karsilama(yenile: Int, ayarlariAc: () -> Unit, devam: () -> Unit) {
             )
             HazirlikKarti(adimlar)
             if (remember(yenile) { !PilYardimi.muaf(c) }) PilYardimiKarti(Marka.bu(), kapat = null)
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = devam, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text(if (adimlar.all { it.tamam }) "Başla" else "Şimdilik geç", style = MaterialTheme.typography.titleMedium)
-            }
             Spacer(Modifier.height(16.dp))
         }
+    }
+    }
+    // Düğme hep görünsün: kaydırılan içeriğin altında sabit.
+    Surface(color = MaterialTheme.colorScheme.background, tonalElevation = 2.dp) {
+        Button(
+            onClick = devam,
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(16.dp)
+                .height(56.dp),
+        ) {
+            Text(if (adimlar.all { it.tamam }) "Başla" else "Şimdilik geç", style = MaterialTheme.typography.titleMedium)
+        }
+    }
     }
 }
