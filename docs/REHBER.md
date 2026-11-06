@@ -415,10 +415,10 @@ sunucu başlatma.
   hızlı yeniden açılışta AA "Already connected"da takılıp 1–6 sn sonra kapanıyor. Önlem: başlatmadan
   önce bekleme + hiç kare gelmeden biterse bir kez otomatik yeniden deneme.
 - **Klavye:** AA'nın klavyesi görüntünün içinde çiziliyor; harf boyutu Ayarlar → Yoğunluk (DPI)
-  ile büyür (ör. 280–320). Klavyeye dokununca AA bazen telefonda kendi ekranını üste açıyor.
+  ile büyür (ör. 280–320).
 - Dosyalar: `Pb`, `Cerceve`/`AapTls`/`AapTasima`, `Kesif` (`Geometri`), `AapOturum`,
   `GoruntuCozucu`, `Mikrofon`, `EkranActivity`.
-- Kalan: aynı ekranda klavye.
+- Klavye Android Auto ekranının içinde açılıyor (2.3.0'da doğrulandı).
 
 ### Test listesi (her aşama sonunda telefonda)
 
