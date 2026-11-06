@@ -4,18 +4,24 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Bir kez adb ile verilir; PhoneAuto'nun erişilebilirlik servisini yeniden açmak için. -->
+    <!-- Android Auto'nun ana birim sunucusuna (127.0.0.1:5277) bağlanmak için. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android Auto sesli komutları için mikrofon. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Bir kez adb ile verilir; kendi erişilebilirlik servisimizi gerektiğinde yeniden açmak için. -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
     <queries>
-        <package android:name="com.tarplay.phonescreen" />
+        <!-- Bildirimdeki "Stop" yazısını Android Auto'nun dilinde okumak için. -->
+        <package android:name="com.google.android.projection.gearhead" />
     </queries>
 
     <application
         android:label="Araba Başlatıcı"
-        android:icon="@drawable/ic_launcher">
+        android:icon="@drawable/ic_launcher"
+        android:theme="@style/Tema">
 
         <activity
             android:name=".MainActivity"
@@ -54,16 +60,48 @@
         </service>
 
         <service
-            android:name=".AyarKapatici"
+            android:name=".SunucuBaslatici"
             android:exported="false"
-            android:label="Araba Başlatıcı – ayarları kapat"
+            android:label="Araba Başlatıcı – sunucuyu başlat"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/ayar_kapatici" />
+                android:resource="@xml/sunucu_baslatici" />
+        </service>
+
+        <activity
+            android:name=".ekran.EkranActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|density|uiMode"
+            android:launchMode="singleTask"
+            android:resizeableActivity="false"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
+        <receiver
+            android:name=".BaslatWidget"
+            android:exported="true"
+            android:label="Android Auto'yu başlat">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_baslat_bilgi" />
+        </receiver>
+
+        <service
+            android:name=".BaslatKutucugu"
+            android:exported="true"
+            android:icon="@drawable/ic_araba"
+            android:label="Android Auto"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
         </service>
 
         <receiver

@@ -5,7 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/** Seçili araba Bluetooth'u bağlanınca bildirimi gösterir, kopunca kaldırır. */
+/** Seçili araba Bluetooth'u bağlanınca ayara göre sorar ya da doğrudan başlatır; kopunca kapatır. */
 class BtAlici : BroadcastReceiver() {
 
     override fun onReceive(c: Context, intent: Intent) {
@@ -21,7 +21,14 @@ class BtAlici : BroadcastReceiver() {
                 if (simdi - p.getLong("son_bildirim", 0) < TEKRAR_SURESI_MS) return
                 p.edit().putLong("son_bildirim", simdi).apply()
                 val ad = try { d.name } catch (_: SecurityException) { null }
-                Bildirim.goster(c, ad)
+                when (Ayarlar.baglaninca(c)) {
+                    0 -> Bildirim.goster(c, ad)
+                    1 -> {
+                        Olaylar.yaz(c, "Araba bağlandı (${ad ?: d.address}): otomatik başlatılıyor")
+                        Baslatici.baslat(c)
+                    }
+                    else -> Unit
+                }
             }
             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                 Bildirim.iptal(c)

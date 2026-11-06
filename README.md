@@ -43,3 +43,11 @@ o APK GitHub derlemesinin üzerine kurulamaz.
 - PhoneAuto, Android Auto menüsünde yalnızca İngilizce yazıları arıyor; bu yüzden Android Auto'nun
   dili İngilizceye ayarlanıyor (`kur.sh` yapar).
 - Çalışma Xiaomi (crDroid, Android 16) üzerinde denendi.
+
+## Lisans
+
+Kendi ekranımız (`app/src/main/kotlin/.../ekran/`) [Open Headunit](https://github.com/andreknieriem/open-headunit)
+(AGPL-3.0, `ae74788d`) başvuru alınarak yazılıyor; AAP çerçeve biçimi ve el sıkışma akışı oradan
+öğrenildi, `res/raw/aap_sertifika` ve `aap_anahtar` (Google referans ana birim sertifikası) oradan
+alındı. Bu yüzden proje AGPL-3.0 altındadır (`LICENSE`). Uygulama ya da depo başkasıyla
+paylaşılırsa kaynak kodu da paylaşılmalı; sertifika Google'a ait olduğundan dağıtmak ayrıca risklidir.

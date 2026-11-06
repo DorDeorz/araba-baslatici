@@ -4,24 +4,13 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 
-/** "Android Auto başlatılsın mı?" bildirimini gösterir ve PhoneAuto'yu açar. */
+/** "Android Auto başlatılsın mı?" bildirimi. "Başlat" → [BaslatActivity] → [Baslatici]. */
 object Bildirim {
     private const val KANAL = "araba_baglandi"
     private const val ID = 1
-    const val PHONEAUTO = "com.tarplay.phonescreen"
-
-    // Bu ekran açılınca PhoneAuto, gerekirse ana birim sunucusunu kendisi başlatıp bağlanıyor.
-    const val PHONEAUTO_EKRAN = "com.google.android.projection.sink.ui.MainActivity"
-
-    fun phoneAutoIntent(): Intent = Intent()
-        .setComponent(ComponentName(PHONEAUTO, PHONEAUTO_EKRAN))
-        // Eski bir PhoneAuto ekranı öne getirilmesin, her seferinde temiz başlasın.
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-
     fun goster(c: Context, cihazAdi: String?) {
         val nm = c.getSystemService(NotificationManager::class.java)
         val kanal = NotificationChannel(KANAL, "Arabaya bağlanınca", NotificationManager.IMPORTANCE_HIGH)

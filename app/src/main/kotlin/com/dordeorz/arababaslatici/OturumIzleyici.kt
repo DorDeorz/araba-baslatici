@@ -1,5 +1,6 @@
 package com.dordeorz.arababaslatici
 
+import com.dordeorz.arababaslatici.ekran.AapOturum
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
@@ -20,12 +21,15 @@ import kotlin.concurrent.thread
 class OturumIzleyici : NotificationListenerService() {
 
     private val handler = Handler(Looper.getMainLooper())
-    private val kapat = Runnable { if (!oturumVar()) sunucuyuDurdur() }
+    private val kapat = Runnable {
+        // Kendi ekranımız bağlıyken Android Auto oturum bildirimini kaldırabiliyor; o zaman kapatma.
+        if (AapOturum.bagli) Log.i(TAG, "Oturum bildirimi yok ama ekranımız bağlı; sunucu açık kalıyor")
+        else if (!oturumVar()) sunucuyuDurdur()
+    }
 
     override fun onListenerConnected() {
         calisan = this
-        AyarKapatici.oturumAcik = oturumVar()
-        thread { Erisilebilirlik.kendiServisiniAc(this) }
+        thread { Erisilebilirlik.ac(this) }
 
         // Dinleyici ölüyken araba ayrıldıysa şimdi kapat.
         val p = Ayarlar.prefs(this)
@@ -50,15 +54,12 @@ class OturumIzleyici : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (oturumBildirimi(sbn)) {
-            AyarKapatici.oturumAcik = true
             handler.removeCallbacks(kapat)
         }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         if (oturumBildirimi(sbn)) {
-            AyarKapatici.oturumAcik = false
-            AyarKapatici.oturumBitis = System.currentTimeMillis()
             Log.i(TAG, "Android Auto oturumu bitti; ${BEKLEME_MS / 1000} sn sonra sunucu kapatılacak")
             handler.removeCallbacks(kapat)
             handler.postDelayed(kapat, BEKLEME_MS)
@@ -80,11 +81,18 @@ class OturumIzleyici : NotificationListenerService() {
         for (s in aktifBildirimler()) {
             val n = s.notification
             if (s.packageName != GEARHEAD || n.channelId != SUNUCU_KANALI) continue
-            for (a in n.actions ?: continue) {
-                if (a.title?.toString().equals("Stop", ignoreCase = true) && a.actionIntent != null) {
+            val eylemler = n.actions ?: continue
+            val durdur = durdurYazisi()
+            for (a in eylemler) {
+                // Tek eylem varsa o Stop'tur; birden çoksa yazısına göre seç.
+                val baslik = a.title?.toString()
+                val dogruEylem = eylemler.size == 1 ||
+                    baslik.equals(durdur, ignoreCase = true) || baslik.equals("Stop", ignoreCase = true)
+                if (dogruEylem && a.actionIntent != null) {
                     try {
                         a.actionIntent.send()
-                        Log.i(TAG, "Ana birim sunucusu kapatıldı")
+                        sonDurdurma = android.os.SystemClock.elapsedRealtime()
+                        Olaylar.yaz(this, "Ana birim sunucusu kapatıldı")
                         return true
                     } catch (e: PendingIntent.CanceledException) {
                         Log.w(TAG, "Stop düğmesi çalışmadı", e)
@@ -93,6 +101,18 @@ class OturumIzleyici : NotificationListenerService() {
             }
         }
         return false
+    }
+
+    /**
+     * Bildirimdeki "Stop" düğmesinin Android Auto'nun o anki dilindeki yazısı. Kaynak adı
+     * bulunamazsa (Android Auto güncellemesi) İngilizceye düşer.
+     */
+    private fun durdurYazisi(): String = try {
+        val r = packageManager.getResourcesForApplication(GEARHEAD)
+        val id = r.getIdentifier("developer_head_unit_server_notification_stop", "string", GEARHEAD)
+        if (id != 0) r.getString(id) else "Stop"
+    } catch (e: Exception) {
+        "Stop"
     }
 
     companion object {
@@ -105,13 +125,16 @@ class OturumIzleyici : NotificationListenerService() {
         /** "Head unit server running" bildiriminin kanalı. */
         private const val SUNUCU_KANALI = "gearhead_connection_status"
 
-        /** PhoneAuto kısa süre koparsa sunucuyu hemen kapatmamak için bekleme. */
+        /** Oturum kısa süre koparsa sunucuyu hemen kapatmamak için bekleme. */
         const val BEKLEME_MS = 15_000L
 
         @Volatile private var calisan: OturumIzleyici? = null
 
         private fun oturumBildirimi(sbn: StatusBarNotification): Boolean =
             sbn.packageName == GEARHEAD && sbn.notification.channelId == OTURUM_KANALI
+
+        /** Sunucu bildirimi görünüyor mu; dinleyici bağlı değilse null (bilinmiyor). */
+        fun sunucuAcik(): Boolean? = calisan?.sunucuBildirimiVar()
 
         fun bilesen(c: Context) = ComponentName(c, OturumIzleyici::class.java)
 
@@ -142,6 +165,9 @@ class OturumIzleyici : NotificationListenerService() {
                 Log.w(TAG, "Dinleyici yeniden bağlanamadı", e)
             }
         }
+
+        /** Sunucunun en son kapatıldığı an (elapsedRealtime). Android Auto hemen ardından yeniden açılırsa takılıyor. */
+        @Volatile var sonDurdurma = 0L
 
         /** Araba Bluetooth'u kopunca: oturum bitmiş say, beklemeden kapat. */
         fun arabadanAyrildi(c: Context) {

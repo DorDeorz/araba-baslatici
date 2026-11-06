@@ -5,13 +5,16 @@
 #   bash kur.sh yol/uygulama.apk  # verilen APK'yı kurar
 #
 # Gerekenler: adb (Android platform-tools) ve APK indirmek için `gh` (GitHub CLI, oturum açık).
-# Telefonda USB hata ayıklama açık olmalı.
+# Telefonda USB hata ayıklama açık olmalı. Wi-Fi ile: ADB_SERIAL=192.168.1.49:PORT bash kur.sh
 set -euo pipefail
 cd "$(dirname "$0")"
 
 PKG=com.dordeorz.arababaslatici
 ADB=${ADB:-adb}
 command -v "$ADB" >/dev/null 2>&1 || ADB=/c/Users/oguzh/AppData/Local/Android/Sdk/platform-tools/adb.exe
+SERI=${ADB_SERIAL:-}
+if [ -n "$SERI" ] && [[ "$SERI" == *:* ]]; then "$ADB" connect "$SERI" >/dev/null || true; fi
+adb_() { "$ADB" ${SERI:+-s "$SERI"} "$@"; }
 
 APK=${1:-}
 if [ -z "$APK" ]; then
@@ -23,19 +26,18 @@ if [ -z "$APK" ]; then
   APK="$GECICI/ArabaBaslatici.apk"
 fi
 
-"$ADB" wait-for-device
-"$ADB" install -r "$APK"
+adb_ wait-for-device
+adb_ install -r "$APK"
 
 # Çalışma izinleri (normalde uygulama ilk açılışta sorar).
-"$ADB" shell pm grant $PKG android.permission.BLUETOOTH_CONNECT
-"$ADB" shell pm grant $PKG android.permission.POST_NOTIFICATIONS
-# Erişilebilirlik servislerini (PhoneAuto'nunki ve kendi servisimiz) kendisi açabilsin diye.
-"$ADB" shell pm grant $PKG android.permission.WRITE_SECURE_SETTINGS
+adb_ shell pm grant $PKG android.permission.BLUETOOTH_CONNECT
+adb_ shell pm grant $PKG android.permission.POST_NOTIFICATIONS
+adb_ shell pm grant $PKG android.permission.RECORD_AUDIO
+# Erişilebilirlik servislerini (sunucuyu başlatan kendi servisimiz) kendisi açabilsin diye.
+adb_ shell pm grant $PKG android.permission.WRITE_SECURE_SETTINGS
 # Android Auto sunucusunu otomatik kapatmak için bildirim erişimi.
-"$ADB" shell cmd notification allow_listener $PKG/$PKG.OturumIzleyici
-# PhoneAuto, Android Auto menüsünde yalnızca İngilizce yazıları bulabiliyor.
-"$ADB" shell cmd locale set-app-locales com.google.android.projection.gearhead --locales en-US
+adb_ shell cmd notification allow_listener $PKG/$PKG.OturumIzleyici
 
 # Uygulamayı bir kez aç: erişilebilirlik servislerini kendisi açar.
-"$ADB" shell am start -n $PKG/.MainActivity >/dev/null
+adb_ shell am start -n $PKG/.MainActivity >/dev/null
 echo "Tamam. Telefonda Araba Başlatıcı ekranındaki satırların hepsi ✓ olmalı."
