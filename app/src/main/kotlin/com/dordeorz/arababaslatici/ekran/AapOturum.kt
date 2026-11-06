@@ -1,5 +1,6 @@
 package com.dordeorz.arababaslatici.ekran
 
+import com.dordeorz.arababaslatici.Olaylar
 import android.content.Context
 import android.content.res.Configuration
 import android.media.AudioAttributes
@@ -63,6 +64,7 @@ class AapOturum(
                 }
             }
             baglantiMs = SystemClock.elapsedRealtime() - t0
+            Olaylar.yaz(context, "Bağlandı ($baglantiMs ms)")
             bagli = true
             dinleyici.durum("Bağlandı (${baglantiMs} ms), görüntü bekleniyor…")
             tasima.okumaZamanAsimi(10_000)
@@ -76,6 +78,7 @@ class AapOturum(
             }
         } finally {
             val beklenmedik = acik
+            if (beklenmedik) Olaylar.yaz(context, "Oturum bitti: $neden")
             temizle()
             if (beklenmedik) dinleyici.bitti(neden, kullaniciCikti = false)
         }

@@ -18,10 +18,12 @@ import kotlin.concurrent.thread
 object Baslatici {
     @Volatile private var calisiyor = false
 
-    fun baslat(c: Context) {
+    /** [yeniden]: takılan bağlantıdan sonra kendiliğinden ikinci deneme (bir kez daha denenmez). */
+    fun baslat(c: Context, yeniden: Boolean = false) {
         val app = c.applicationContext
         if (calisiyor) return
         calisiyor = true
+        Olaylar.yaz(app, if (yeniden) "Yeniden deneniyor" else "Başlat")
         Bildirim.iptal(app)
         OturumIzleyici.yenidenBagla(app)
         thread {
@@ -35,8 +37,8 @@ object Baslatici {
                 SystemClock.sleep(bekle)
             }
             if (OturumIzleyici.sunucuAcik() == true) {
-                Log.i(TAG, "Sunucu zaten açık, ekran açılıyor")
-                ana { ekraniAc(app) }
+                Olaylar.yaz(app, "Sunucu zaten açık, ekran açılıyor")
+                ana { ekraniAc(app, yeniden) }
                 return@thread
             }
             val servis = Erisilebilirlik.ac(app)
@@ -45,9 +47,10 @@ object Baslatici {
                         if (!tamam) Toast.makeText(app, "Ana birim sunucusu başlatılamadı. " +
                             "Android Auto'da geliştirici modu açık mı?", Toast.LENGTH_LONG).show()
                         // Başarısız da olsa ekranı aç: sunucu elle açılmışsa bağlanır.
-                        ekraniAc(app)
+                        ekraniAc(app, yeniden)
                     }) {
                     calisiyor = false
+                    Olaylar.yaz(app, "Erişilebilirlik servisi çalışmıyor")
                     Toast.makeText(app, "Erişilebilirlik servisi çalışmıyor; Araba Başlatıcı'yı aç.",
                         Toast.LENGTH_LONG).show()
                 }
@@ -55,9 +58,10 @@ object Baslatici {
         }
     }
 
-    private fun ekraniAc(c: Context) {
+    private fun ekraniAc(c: Context, yeniden: Boolean) {
         calisiyor = false
         c.startActivity(Intent(c, EkranActivity::class.java)
+            .putExtra(EkranActivity.EK_YENIDEN, yeniden)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
     }
 

@@ -24,6 +24,8 @@ import android.widget.TextView
 import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
 import com.dordeorz.arababaslatici.Ayarlar
+import com.dordeorz.arababaslatici.Baslatici
+import com.dordeorz.arababaslatici.Olaylar
 import com.dordeorz.arababaslatici.OturumIzleyici
 import kotlin.math.roundToInt
 
@@ -52,6 +54,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     private var bilgiAcik = false
     private var cikisTakip = false
     private var cikiliyor = false
+    private var ilkYazildi = false
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -210,6 +213,10 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             val gelenFps = gelenSayi - sonGelen
             sonGelen = gelenSayi
             val ilk = c?.ilkKareMs?.takeIf { it > 0 }?.let { "${it - acilis} ms" } ?: "—"
+            if (sayi > 0 && !ilkYazildi) {
+                ilkYazildi = true
+                Olaylar.yaz(this@EkranActivity, "İlk görüntü: $ilk (${geometri.yukseklik}p)")
+            }
             if (sayi == 0) {
                 // Görüntü gelene kadar durum her zaman görünsün (bağlanıyor, sunucu bekleniyor…).
                 bilgi.text = sonDurum
@@ -263,7 +270,16 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
 
     override fun bitti(neden: String, kullaniciCikti: Boolean) = ana.post {
         if (kullaniciCikti) cik()
-        else {
+        else if ((oturum.cozucu?.basilan?.get() ?: 0) == 0 && !intent.getBooleanExtra(EK_YENIDEN, false)) {
+            // Görüntü gelmeden düştü: Android Auto büyük olasılıkla eski bağlantıyı açık sanıyor
+            // ("Already connected"). Sunucuyu kapatıp bir kez kendiliğinden yeniden dene.
+            Olaylar.yaz(this, "Görüntü gelmeden düştü ($neden); sunucu kapatılıp yeniden denenecek")
+            Toast.makeText(this, "Android Auto takıldı, yeniden başlatılıyor…", Toast.LENGTH_LONG).show()
+            val uygulama = applicationContext
+            OturumIzleyici.arabadanAyrildi(uygulama)
+            Handler(Looper.getMainLooper()).postDelayed({ Baslatici.baslat(uygulama, yeniden = true) }, 500)
+            finishAndRemoveTask()
+        } else {
             Toast.makeText(this, neden, Toast.LENGTH_LONG).show()
             finishAndRemoveTask()
         }
@@ -276,6 +292,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     private fun cik() {
         if (cikiliyor) return
         cikiliyor = true
+        Olaylar.yaz(this, "Çıkış")
         oturum.kapat()
         val uygulama = applicationContext
         if (Ayarlar.cikinciSunucuyuKapat(this)) {
@@ -296,5 +313,7 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     companion object {
         /** Ayarı geçersiz kılmak için (deneme): true → 720p. */
         const val EK_720P = "720p"
+        /** Takılmadan sonra kendiliğinden açılan ikinci deneme. */
+        const val EK_YENIDEN = "yeniden"
     }
 }

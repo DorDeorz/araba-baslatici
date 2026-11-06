@@ -85,7 +85,7 @@ class SunucuBaslatici : AccessibilityService() {
     }
 
     private fun bitir(tamam: Boolean, neden: String) {
-        Log.i(TAG, "Sunucu başlatma bitti: $neden")
+        Olaylar.yaz(this, "Sunucu başlatma: $neden")
         h.removeCallbacks(zamanAsimi)
         h.removeCallbacks(tekrar)
         if (adim != Adim.BOS && !tamam) performGlobalAction(GLOBAL_ACTION_BACK)

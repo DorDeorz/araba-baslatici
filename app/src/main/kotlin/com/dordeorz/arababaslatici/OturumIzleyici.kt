@@ -92,7 +92,7 @@ class OturumIzleyici : NotificationListenerService() {
                     try {
                         a.actionIntent.send()
                         sonDurdurma = android.os.SystemClock.elapsedRealtime()
-                        Log.i(TAG, "Ana birim sunucusu kapatıldı")
+                        Olaylar.yaz(this, "Ana birim sunucusu kapatıldı")
                         return true
                     } catch (e: PendingIntent.CanceledException) {
                         Log.w(TAG, "Stop düğmesi çalışmadı", e)

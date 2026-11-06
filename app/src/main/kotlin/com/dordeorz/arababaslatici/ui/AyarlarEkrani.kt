@@ -26,9 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.dordeorz.arababaslatici.Ayarlar
 import com.dordeorz.arababaslatici.BuildConfig
+import com.dordeorz.arababaslatici.Olaylar
 import com.dordeorz.arababaslatici.ekran.AapBaglanti
 import java.util.Locale
 import kotlin.concurrent.thread
@@ -131,6 +133,19 @@ fun AyarlarEkrani(
                 sonuc = (if (s.tamam) "✓ " else "✗ ") + s.mesaj +
                     if (s.tamam) "\nTCP ${s.tcpMs} · sürüm ${s.surumMs} · TLS ${s.tlsMs} · ilk mesaj ${s.ilkMesajMs} ms" else ""
             }
+        }
+        var olaylarAcik by remember { mutableStateOf(false) }
+        TiklaSatiri("Son olaylar", "Başlatma, bağlantı, hata ve çıkış kayıtları (en yeni üstte).") {
+            olaylarAcik = !olaylarAcik
+        }
+        if (olaylarAcik) {
+            val satirlar = remember { Olaylar.oku(c) }
+            Text(
+                if (satirlar.isEmpty()) "Henüz kayıt yok." else satirlar.joinToString("\n"),
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
         Ayrac()
 
