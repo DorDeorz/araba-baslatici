@@ -38,6 +38,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
     private lateinit var geometri: Geometri
     private lateinit var bilgi: TextView
     private lateinit var cikis: TextView
+    /** Çentik şeritlerini örten siyah bantlar (Android Auto orada duvar kağıdını çizer). */
+    private val bantlar = arrayOfNulls<View>(2)
     private var olcek = 1f
     private val ana = Handler(Looper.getMainLooper())
     private var acilis = 0L
@@ -108,6 +110,12 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             addView(bilgi, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM or Gravity.END))
+            for (i in 0..1) {
+                val bant = View(this@EkranActivity).apply { setBackgroundColor(Color.BLACK); visibility = View.GONE }
+                bantlar[i] = bant
+                addView(bant, FrameLayout.LayoutParams(0, FrameLayout.LayoutParams.MATCH_PARENT,
+                    if (i == 0) Gravity.START else Gravity.END))
+            }
             addView(cikis, FrameLayout.LayoutParams(dp(40), dp(40)))
             setOnApplyWindowInsetsListener { v, ins -> centikUygula(ins); v.onApplyWindowInsets(ins) }
         }
@@ -143,6 +151,12 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
         }
         Log.i(AapTasima.TAG, "Çentik payı (ekran px): sol=$sol sağ=$sag")
         oturum.centikAyarla((sol / olcek).roundToInt(), (sag / olcek).roundToInt())
+        val siyah = Ayarlar.centikSiyah(this)
+        listOf(sol, sag).forEachIndexed { i, en ->
+            val bant = bantlar[i] ?: return@forEachIndexed
+            bant.layoutParams = bant.layoutParams.apply { width = en }
+            bant.visibility = if (siyah && en > 0) View.VISIBLE else View.GONE
+        }
 
         // X: çentik şeridinin ortasına (şerit yoksa köşeye), seçilen köşede.
         val yer = Ayarlar.cikisYeri(this)

@@ -54,6 +54,9 @@ class AyarlarActivity : Activity() {
         kaydirici(elle, "Pay genişliği (piksel)", "Görüntü tam ekran kalır; yalnızca simgeler ve saat içeri alınır.",
             20, 250, if (centik > 0) centik else 90, { "$it px" }) { Ayarlar.centik(this, it) }
         elle.visibility = if (centik > 0) android.view.View.VISIBLE else android.view.View.GONE
+        ui.ayrac(c)
+        secenek(c, "Çentik şeridi", listOf("Siyah", "Duvar kağıdı"),
+            if (Ayarlar.centikSiyah(this)) 0 else 1) { Ayarlar.centikSiyah(this, it == 0) }
 
         // ---- Çıkış ----
         ui.bolum(kok, "Çıkış")
