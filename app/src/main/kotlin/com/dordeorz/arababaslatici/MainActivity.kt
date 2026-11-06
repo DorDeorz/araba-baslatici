@@ -1,91 +1,96 @@
 package com.dordeorz.arababaslatici
 
 import android.Manifest
-import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import com.dordeorz.arababaslatici.ui.AnaEkran
+import com.dordeorz.arababaslatici.ui.AyarlarEkrani
+import com.dordeorz.arababaslatici.ui.Karsilama
+import com.dordeorz.arababaslatici.ui.Tema
 import kotlin.concurrent.thread
 
-/** Ana ekran: tek tuşla başlatma ve hazırlık durumu. Ayrıntılar [AyarlarActivity]'de. */
-class MainActivity : Activity() {
-    private lateinit var ui: Arayuz
+/** Ana ekran, ilk açılış karşılaması ve ayarlar (Compose + Material 3). */
+class MainActivity : ComponentActivity() {
+    /** Ekrana dönülünce ya da izin verilince hazırlık durumu yeniden okunsun diye artar. */
+    private var yenile by mutableIntStateOf(0)
 
     override fun onCreate(b: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(b)
-        ui = Arayuz(this)
+        setContent {
+            var tema by remember { mutableIntStateOf(Ayarlar.tema(this)) }
+            var dinamik by remember { mutableStateOf(Ayarlar.dinamikRenk(this)) }
+            var ayarlar by rememberSaveable { mutableStateOf(false) }
+            var karsilama by remember { mutableStateOf(!Ayarlar.karsilamaGoruldu(this)) }
+            val koyu = when (tema) { 1 -> false; 2 -> true; else -> isSystemInDarkTheme() }
+            val gorunum = LocalView.current
+            SideEffect {
+                WindowCompat.getInsetsController(window, gorunum).apply {
+                    isAppearanceLightStatusBars = !koyu
+                    isAppearanceLightNavigationBars = !koyu
+                }
+            }
+            Tema(koyu, dinamik) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    val ayarlariAc = { ayarlar = true }
+                    when {
+                        ayarlar -> {
+                            BackHandler { ayarlar = false; yenile++ }
+                            AyarlarEkrani(
+                                geri = { ayarlar = false; yenile++ },
+                                tema = tema,
+                                temaDegisti = { tema = it; Ayarlar.tema(this, it) },
+                                dinamik = dinamik,
+                                dinamikDegisti = { dinamik = it; Ayarlar.dinamikRenk(this, it) },
+                            )
+                        }
+                        karsilama -> Karsilama(yenile, ayarlariAc) {
+                            karsilama = false
+                            Ayarlar.karsilamaGoruldu(this, true)
+                        }
+                        else -> AnaEkran(yenile, ayarlariAc) {
+                            Ayarlar.pilYardimiGizli(this, true)
+                            yenile++
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         OturumIzleyici.yenidenBagla(this)
         if (!Erisilebilirlik.calisiyor(this)) {
-            thread { if (Erisilebilirlik.ac(this)) runOnUiThread(::ciz) }
+            thread { if (Erisilebilirlik.ac(this)) runOnUiThread { yenile++ } }
         }
         val eksik = listOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.POST_NOTIFICATIONS,
-            Manifest.permission.RECORD_AUDIO).filterNot(::izinli)
+            Manifest.permission.RECORD_AUDIO).filterNot { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
         if (eksik.isNotEmpty()) requestPermissions(eksik.toTypedArray(), 1)
-        ciz()
+        yenile++
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, results: IntArray) = ciz()
-
-    private fun izinli(izin: String) = checkSelfPermission(izin) == PackageManager.PERMISSION_GRANTED
-
-    private fun ciz() {
-        val kok = ui.sayfa()
-        ui.buyukBaslik(kok, "Araba Başlatıcı",
-            "Arabaya bağlanınca Android Auto'yu bu telefonda, kendi ekranımızda açar.")
-
-        ui.anaDugme(kok, "Android Auto'yu başlat") { Baslatici.baslat(this) }
-
-        ui.bolum(kok, "Hazırlık")
-        val k = ui.kart(kok)
-        var ilk = true
-        fun satir(baslik: String, tamam: Boolean, aciklama: String, duzelt: (() -> Unit)?) {
-            if (!ilk) ui.ayrac(k)
-            ilk = false
-            ui.satir(k, baslik, aciklama, if (tamam) "✓" else "!", if (tamam) ui.iyi else ui.uyari,
-                if (tamam) null else duzelt)
-        }
-
-        val servis = Erisilebilirlik.calisiyor(this)
-        satir("Sunucuyu otomatik başlatma", servis,
-            if (servis) "Android Auto'nun ana birim sunucusu tek tuşla açılır."
-            else if (Erisilebilirlik.yetkiVar(this)) "Erişilebilirlik servisi açılıyor…"
-            else "Erişilebilirlik'ten \"Araba Başlatıcı\"yı aç (dokun).") {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
-
-        val dinleyici = OturumIzleyici.izinVar(this)
-        satir("Otomatik kapatma", dinleyici,
-            if (dinleyici) "Oturum bitince ya da araba ayrılınca sunucu kapanır."
-            else "Bildirim erişimi gerekli (dokun).") {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
-                .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
-                    OturumIzleyici.bilesen(this).flattenToString()))
-        }
-
-        val mikrofon = izinli(Manifest.permission.RECORD_AUDIO)
-        satir("Mikrofon", mikrofon, if (mikrofon) "Sesli komutlar için." else "İzin gerekli (dokun).",
-            ::uygulamaAyarlari)
-
-        val bildirim = izinli(Manifest.permission.POST_NOTIFICATIONS) && izinli(Manifest.permission.BLUETOOTH_CONNECT)
-        val arabalar = Ayarlar.seciliCihazlar(this).size
-        satir("Arabaya bağlanınca sor", bildirim && arabalar > 0,
-            when {
-                !bildirim -> "Bluetooth ve bildirim izni gerekli (dokun)."
-                arabalar == 0 -> "Ayarlar'dan arabanın Bluetooth'unu seç (dokun)."
-                else -> "$arabalar cihaz seçili: bağlanınca \"Başlatılsın mı?\" bildirimi gelir."
-            }) {
-            if (!bildirim) uygulamaAyarlari() else startActivity(Intent(this, AyarlarActivity::class.java))
-        }
-
-        ui.dugme(kok, "Ayarlar") { startActivity(Intent(this, AyarlarActivity::class.java)) }
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, results: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, results)
+        yenile++
     }
-
-    private fun uygulamaAyarlari() = startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-        Uri.fromParts("package", packageName, null)))
 }

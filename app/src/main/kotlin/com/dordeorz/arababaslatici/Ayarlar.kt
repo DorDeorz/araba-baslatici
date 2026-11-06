@@ -49,4 +49,22 @@ object Ayarlar {
     /** Çıkınca ana birim sunucusunu da kapat. */
     fun cikinciSunucuyuKapat(c: Context) = prefs(c).getBoolean("cikis_sunucu", true)
     fun cikinciSunucuyuKapat(c: Context, v: Boolean) = prefs(c).edit().putBoolean("cikis_sunucu", v).apply()
+
+    // ---- Görünüm ----
+
+    /** 0 sistem, 1 açık, 2 koyu. */
+    fun tema(c: Context) = prefs(c).getInt("tema", 0)
+    fun tema(c: Context, v: Int) = prefs(c).edit().putInt("tema", v).apply()
+
+    /** Renkleri duvar kağıdından al (Android 12+). */
+    fun dinamikRenk(c: Context) = prefs(c).getBoolean("dinamik_renk", true)
+    fun dinamikRenk(c: Context, v: Boolean) = prefs(c).edit().putBoolean("dinamik_renk", v).apply()
+
+    /** İlk açılıştaki karşılama ekranı geçildi mi. */
+    fun karsilamaGoruldu(c: Context) = prefs(c).getBoolean("karsilama", false)
+    fun karsilamaGoruldu(c: Context, v: Boolean) = prefs(c).edit().putBoolean("karsilama", v).apply()
+
+    /** Ana ekrandaki pil yardımı kartı kapatıldı mı. */
+    fun pilYardimiGizli(c: Context) = prefs(c).getBoolean("pil_yardimi_gizli", false)
+    fun pilYardimiGizli(c: Context, v: Boolean) = prefs(c).edit().putBoolean("pil_yardimi_gizli", v).apply()
 }
