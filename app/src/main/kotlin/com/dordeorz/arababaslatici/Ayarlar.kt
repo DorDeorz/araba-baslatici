@@ -46,6 +46,10 @@ object Ayarlar {
     fun cikinciSunucuyuKapat(c: Context) = prefs(c).getBoolean("cikis_sunucu", true)
     fun cikinciSunucuyuKapat(c: Context, v: Boolean) = prefs(c).edit().putBoolean("cikis_sunucu", v).apply()
 
+    /** Seçili araba Bluetooth'u bağlanınca: 0 bildirimle sor, 1 doğrudan başlat, 2 hiçbir şey yapma. */
+    fun baglaninca(c: Context) = prefs(c).getInt("baglaninca", 0)
+    fun baglaninca(c: Context, v: Int) = prefs(c).edit().putInt("baglaninca", v).apply()
+
     // ---- Görünüm ----
 
     /** 0 sistem, 1 açık, 2 koyu. */

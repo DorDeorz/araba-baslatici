@@ -123,22 +123,27 @@ Kaynak adları Android Auto güncellemelerinde değişebilir; kod, ad bulunamazs
 
 ## 5. Şu anki uygulama: Araba Başlatıcı (bu depo)
 
-`com.dordeorz.arababaslatici`, sürüm 1.7.0, **Kotlin** (`app/src/main/kotlin/`), min SDK 33, hedef 36.
-1.5.0 (Java) arabada uçtan uca doğrulandı; 1.6.0 aynı davranışın Kotlin'e çevrilmiş hâli.
+`com.dordeorz.arababaslatici`, sürüm 2.3.0, **Kotlin** (`app/src/main/kotlin/`), min SDK 33,
+derleme SDK 37. Arayüz Jetpack Compose + Material 3 (Kronometre'nin yeşil teması, dinamik renk,
+tema seçimi). PhoneAuto artık gerekmiyor: Android Auto ekranı bu uygulamanın içinde (`ekran/`).
 
 | Sınıf | Görevi |
 |---|---|
-| `BtAlici` | `ACL_CONNECTED/DISCONNECTED` dinler. Seçili araba bağlanınca bildirim; kopunca bildirimi kaldırır ve sunucuyu hemen kapattırır. 2 dk içinde tekrar bildirim göstermez. |
-| `Bildirim` | "MY CAR bağlandı — Android Auto başlatılsın mı?" (Başlat / Hayır). PhoneAuto ekran sabitleri burada. |
-| `BaslatActivity` | Görünmez ara ekran: kendi servislerini ve PhoneAuto'nun servisini gerekirse onarır, sonra PhoneAuto `MainActivity`'yi açar. |
-| `Erisilebilirlik` | Erişilebilirlik servisinin gerçekten bağlı olup olmadığını kontrol eder (`getEnabledAccessibilityServiceList`), gerekirse çıkar/ekle ile yeniden açar. |
-| `OturumIzleyici` | NotificationListener. "Aracınıza bağlandı" kalkınca 15 sn bekler, oturum dönmezse "Head unit server running" bildirimindeki Stop'a basar. Yeniden bağlanınca açık kalmış sunucuyu kapatır. Kendini bileşen aç/kapa ile yeniden bağlatır. |
-| `AyarKapatici` | Kendi erişilebilirlik servisimiz. PhoneAuto'nun son ekranı `MainActivity` iken ve oturum açık/5 sn içinde bitmişken Android Auto ayarları öne gelirse GERİ'ye basar. Sunucu başlatılırken oturum olmadığı için karışmaz. |
-| `MainActivity` | Durum ekranı (✓/✗), araba seçimi, "Bildirimi şimdi dene", "Şimdi onar". Son uygulamalarda görünmez (`excludeFromRecents`). |
+| `MainActivity` + `ui/` | Ana ekran (büyük Başlat düğmesi, hazırlık kartı, pil yardımı), ilk açılış karşılaması, Ayarlar sayfası. |
+| `Baslatici` | Tek dokunuşla başlatma: sunucu açıksa ekranı açar, değilse `SunucuBaslatici` ile sunucuyu başlatır. Son çıkıştan 3 sn, son durdurmadan 6 sn geçmeden başlatmaz (AA "Already connected"da takılmasın). |
+| `SunucuBaslatici` | Erişilebilirlik servisi. AA ayarlarında ⋮ → "Ana birim sunucusunu başlat"a gearhead kaynak yazılarıyla (dilden bağımsız) basar, sonra ayarları kapatır. |
+| `Erisilebilirlik` | Servisin gerçekten bağlı olup olmadığını kontrol eder, gerekirse çıkar/ekle ile yeniden açar. |
+| `BtAlici` | `ACL_CONNECTED/DISCONNECTED`. Seçili araba bağlanınca ayara göre: bildirimle sor / doğrudan başlat / hiçbir şey yapma. 2 dk içinde tekrarlamaz. Kopunca sunucuyu kapattırır. |
+| `Bildirim`, `BaslatActivity` | "Başlatılsın mı?" bildirimi ve görünmez başlatma ekranı. |
+| `BaslatKutucugu`, `BaslatWidget` | Hızlı ayarlar kutucuğu ve ana ekran widget'ı: ikisi de `BaslatActivity`'yi açar. |
+| `OturumIzleyici` | NotificationListener. Oturum bitip dönmezse sunucunun Stop'una basar (oturum açıkken asla). |
+| `Olaylar` | Kalıcı olay kaydı: `/sdcard/Android/data/com.dordeorz.arababaslatici/files/olaylar.txt`, Ayarlar → Geliştirici → Son olaylar. |
+| `ekran/` | Kendi AAP alıcımız (aşağıda "Kendi ekranımız"). |
 
 **Kurulum:** `bash kur.sh` — son başarılı CI derlemesini indirir, kurar, şu izinleri verir:
 `BLUETOOTH_CONNECT`, `POST_NOTIFICATIONS`, `WRITE_SECURE_SETTINGS`, bildirim dinleyicisi
-(`cmd notification allow_listener`), Android Auto dilini İngilizce yapar, uygulamayı açar.
+`RECORD_AUDIO` ve bildirim dinleyicisi (`cmd notification allow_listener`), uygulamayı açar.
+Wi-Fi adb için `ADB_SERIAL=192.168.1.49:PORT bash kur.sh`. Android Auto'nun dili Türkçe kalabilir.
 
 **Derleme:** Gradle 9.6, AGP 9.4 (dahili Kotlin desteği; Kotlin 2.4.10 kök `build.gradle.kts`'te
 sabitli), R8 açık (R8 olmadan Kotlin kütüphanesiyle APK 2 MB, R8 ile ~50 KB).
@@ -389,36 +394,43 @@ Aşama 1'in PR'ları (öneri):
 - Dikey + yatay, tam ekran, dokunma doğruluğu, ses odak yönetimi, mikrofon/Asistan, klavye,
   gece modu, çarpının içerik üstünde durmaması.
 
-### Kendi ekranımız: durum (2026-11-05, 1.9.0, `app/src/main/kotlin/.../ekran/`)
+### Kendi ekranımız: durum (2026-11-06, 2.3.0, `app/src/main/kotlin/.../ekran/`)
 
-Telefonda doğrulandı: bağlantı + TLS, servis keşfi, görüntü (H.264, donanım çözücü
-`OMX.qcom.video.decoder.avc`), dokunma, sistem sesi, mikrofon/Asistan, Android Auto'daki "Çık"
-ya da geri hareketiyle tek adımda çıkış (oturum + sunucu birlikte kapanır).
+Telefonda ve arabada doğrulandı: bağlantı + TLS, servis keşfi, görüntü (H.264, donanım çözücü
+`OMX.qcom.video.decoder.avc`), dokunma, ses, mikrofon/Asistan, tek adımda çıkış, Türkçe AA ile
+sunucu başlatma.
 
-| Ölçüm | Open Headunit 3.5.0 | Bizim 1.9.0 |
+| Ölçüm | Open Headunit 3.5.0 | Bizim |
 |---|---|---|
-| Bağlantı (TCP→TLS) | 0,73 sn | 0,9–1,7 sn (çoğu AA'nın sürüm cevabını beklemek) |
-| İlk görüntü | 1,86 sn | 1080p 2,1–2,6 sn, 720p 1,8 sn |
+| Bağlantı (TCP→TLS) | 0,73 sn | 0,9–1,7 sn |
+| İlk görüntü | 1,86 sn | 1080p 1,7–2,6 sn, 720p 1,8 sn |
 | Ekranda fps (hareketli ekran) | ~33 | 1080p 55–60, 720p 50–60 |
 
-- Android Auto yalnızca ekran değişince kare gönderir; sabit ekranda (ör. çalan şarkı) 11–20 fps
-  normaldir, sürükleyince 60'a çıkar. Gelen = basılan, bekleyen 0: darboğaz bizde değil.
-- Klavyeye dokununca AA telefonda kendi ekranını (Maps GhostActivity) üste açıyor; dönünce
-  yüzey yenilenir, SPS/PPS tekrar verilir ve anahtar kare beklenir.
-- Dosyalar: `Pb` (protobuf), `Cerceve`/`AapTls`/`AapTasima` (taşıma), `Kesif` (servis keşfi,
-  `Geometri`), `AapOturum` (mesajlar), `GoruntuCozucu`, `Mikrofon`, `EkranActivity`.
-- Kalan: çentik payı (UiConfig content_insets), aynı ekranda klavye, ayarlar ekranı (DPI,
-  çözünürlük), Bluetooth akışını PhoneAuto yerine bizim ekrana bağlamak.
+- Sabit ekranda düşük fps normal: AA yalnızca ekran değişince kare gönderir.
+- **Çentik (PhoneAuto yöntemi):** çentik şeridine hiç çizilmez. Geometri `ekranG - pay` genişliğe
+  göre hesaplanır, yüzey `solPay` kadar kaydırılır, şerit siyah kalır, dokunmada x'ten pay düşülür.
+  AA'ya content_insets **gönderilmez**: gönderilirse AA o alana duvar kâğıdı çizip köşeleri yuvarlar
+  (mavi şerit). 0x8009 gönderilecekse margins mutlaka eklenmeli, yoksa görüntü taşar.
+- **AA tuzakları:** oturumdan hemen sonra sunucuyu durdurmak AA'yı çökertiyor (çıkışta 2 sn bekle);
+  hızlı yeniden açılışta AA "Already connected"da takılıp 1–6 sn sonra kapanıyor. Önlem: başlatmadan
+  önce bekleme + hiç kare gelmeden biterse bir kez otomatik yeniden deneme.
+- **Klavye:** AA'nın klavyesi görüntünün içinde çiziliyor; harf boyutu Ayarlar → Yoğunluk (DPI)
+  ile büyür (ör. 280–320). Klavyeye dokununca AA bazen telefonda kendi ekranını üste açıyor.
+- Dosyalar: `Pb`, `Cerceve`/`AapTls`/`AapTasima`, `Kesif` (`Geometri`), `AapOturum`,
+  `GoruntuCozucu`, `Mikrofon`, `EkranActivity`.
+- Kalan: aynı ekranda klavye.
 
 ### Test listesi (her aşama sonunda telefonda)
 
-- [ ] Arabaya bağlanınca bildirim geliyor; Başlat'a basınca Android Auto açılıyor.
-- [ ] Android Auto Türkçeyken de sunucu kendiliğinden başlıyor.
-- [ ] Sunucu başlatıldıktan sonra Android Auto ayarları arkada kalmıyor.
-- [ ] Çıkışta ana ekrana dönülüyor.
+- [x] Arabaya bağlanınca bildirim geliyor; Başlat'a basınca Android Auto açılıyor.
+- [ ] "Doğrudan başlat" seçiliyken arabaya bağlanınca bildirimsiz açılıyor.
+- [ ] Ana ekran widget'ı ve hızlı ayarlar kutucuğu başlatıyor.
+- [x] Android Auto Türkçeyken de sunucu kendiliğinden başlıyor.
+- [x] Sunucu başlatıldıktan sonra Android Auto ayarları arkada kalmıyor.
+- [x] Çıkışta ana ekrana dönülüyor.
 - [ ] Oturum bitince / Bluetooth kopunca sunucu kapanıyor.
 - [ ] Uygulama son uygulamalardan kaydırılıp öldürülünce bir sonraki başlatmada her şey kendini toparlıyor.
-- [ ] Görüntü, dokunma, ses, mikrofon, dikey/yatay çalışıyor.
+- [x] Görüntü, dokunma, ses, mikrofon çalışıyor; çentik şeridi temiz.
 
 ---
 
@@ -427,7 +439,7 @@ ya da geri hareketiyle tek adımda çıkış (oturum + sunucu birlikte kapanır)
 - Kullanıcıyla **Türkçe** konuş; uygulama arayüzü Türkçe.
 - **Kod dili Kotlin.** Yeni kodu Java ile yazma. (İlk prototip Gradle'sız derlendiği için Java'ydı;
   1.6.0'da Kotlin'e çevrildi.) Open Headunit de büyük ölçüde Kotlin, kullanıcının diğer projeleri
-  (AdımSayar) Kotlin + Jetpack Compose. Arayüz büyüdüğünde Compose'a geçilebilir.
+  (AdımSayar) Kotlin + Jetpack Compose. Arayüz Compose + Material 3 (2.2.0'dan beri).
 - Değişiklikler bu depoda; derleme GitHub Actions'ta. Kurulum `bash kur.sh` ile.
 - Telefona `adb install -r` ile kur. Kullanıcının uygulamalarını kaldırma, verisini silme,
   telefon ayarlarını değiştirme işlemlerini **önce sor**. PhoneAuto'yu force-stop etme.

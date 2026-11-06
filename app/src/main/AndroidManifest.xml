@@ -81,6 +81,18 @@
             android:resizeableActivity="false"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
 
+        <receiver
+            android:name=".BaslatWidget"
+            android:exported="true"
+            android:label="Android Auto'yu başlat">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_baslat_bilgi" />
+        </receiver>
+
         <service
             android:name=".BaslatKutucugu"
             android:exported="true"

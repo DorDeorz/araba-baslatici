@@ -103,7 +103,18 @@ fun AyarlarEkrani(
         Ayrac()
 
         // ---- Araba ----
-        BolumBasligi("Araba olarak sayılacak Bluetooth cihazları")
+        BolumBasligi("Araba")
+        var baglaninca by remember { mutableIntStateOf(Ayarlar.baglaninca(c)) }
+        SecimSatiri("Arabaya bağlanınca",
+            listOf("Bildirimle sor", "Doğrudan başlat", "Hiçbir şey yapma"), baglaninca) {
+            baglaninca = it; Ayarlar.baglaninca(c, it)
+        }
+        Text(
+            "Araba olarak sayılacak Bluetooth cihazları:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+        )
         Cihazlar(c)
         Ayrac()
 
