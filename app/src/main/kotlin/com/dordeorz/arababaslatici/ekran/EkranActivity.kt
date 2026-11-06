@@ -58,6 +58,8 @@ class EkranActivity : Activity(), AapOturum.Dinleyici {
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
         }
         window.setDecorFitsSystemWindows(false)
+        // Pencere bir an bile şeffaf/renkli görünmesin (çentik şeridi dahil).
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.BLACK))
 
         val sinir = windowManager.maximumWindowMetrics.bounds
         val ekranG = maxOf(sinir.width(), sinir.height())
