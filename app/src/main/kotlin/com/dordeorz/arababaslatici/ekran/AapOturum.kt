@@ -27,7 +27,7 @@ class AapOturum(
         fun bitti(neden: String, kullaniciCikti: Boolean)
     }
 
-    private val tasima = AapTasima(context)
+    @Volatile private var tasima = AapTasima(context)
     @Volatile private var acik = true
     private var okuyucu: Thread? = null
 
@@ -52,7 +52,16 @@ class AapOturum(
         var neden = "Bağlantı kapandı"
         try {
             dinleyici.durum("Bağlanıyor…")
-            tasima.baglan()
+            // Sunucu yeni başlatıldıysa birkaç saniye içinde açılır: kapalıysa tekrar dene.
+            val son = SystemClock.elapsedRealtime() + 8_000
+            while (true) {
+                try { tasima.baglan(); break } catch (e: java.io.IOException) {
+                    if (!acik || SystemClock.elapsedRealtime() > son || "Sunucu kapalı" !in (e.message ?: "")) throw e
+                    dinleyici.durum("Ana birim sunucusu bekleniyor…")
+                    tasima = AapTasima(context)
+                    SystemClock.sleep(300)
+                }
+            }
             baglantiMs = SystemClock.elapsedRealtime() - t0
             dinleyici.durum("Bağlandı (${baglantiMs} ms), görüntü bekleniyor…")
             tasima.okumaZamanAsimi(10_000)
@@ -166,9 +175,11 @@ class AapOturum(
                 medyaKur(m, 16)
                 goruntuHazir = true
                 odakVer()
+                arayuzAyari()
             }
             0x8001 -> oturumNo[m.kanal] = m.pb().int(1)
             0x8002 -> Unit
+            0x800A -> Log.i(TAG, "Arayüz ayarı cevabı: ${m.pb()}")
             0x8007 -> { // görüntü odağı isteği; NATIVE (2) = AA'daki çık düğmesi
                 if (m.pb().int(2) == 2) {
                     // Android Auto'daki "Çık": PhoneAuto'daki X gibi her şeyi kapat.
@@ -254,6 +265,31 @@ class AapOturum(
             // Yeni çözücü anahtar kare bekler; istenmemiş odak bildirimi Android Auto'dan onu ister.
             yazici.execute { odakVer() }
         }
+    }
+
+    /** Çentik payı (arayüz pikseli): Android Auto içeriği bu kadar içeri alır, görüntü tam ekran kalır. */
+    @Volatile private var payS = 0
+    @Volatile private var payS2 = 0
+
+    fun centikAyarla(sol: Int, sag: Int) {
+        if (sol == payS && sag == payS2) return
+        payS = sol; payS2 = sag
+        yazici.execute { arayuzAyari() }
+    }
+
+    /** UPDATE_UI_CONFIG: içerik kenar boşlukları (content_insets). Kenar boşluğu (margins) değişmez. */
+    private fun arayuzAyari() {
+        if (!goruntuHazir || !acik) return
+        val sol = payS; val sag = payS2
+        Log.i(TAG, "Arayüz ayarı: içerik kenar boşluğu sol=$sol sağ=$sag")
+        try {
+            tasima.gonder(Kanal.GORUNTU, 0x8009, Pb.yaz {
+                mesaj(1) {
+                    mesaj(2) { varint(1, 0); varint(2, 0); varint(3, sol); varint(4, sag) }
+                    mesaj(3) { varint(1, 0); varint(2, 0); varint(3, sol); varint(4, sag) }
+                }
+            })
+        } catch (e: Exception) { Log.w(TAG, "Arayüz ayarı gönderilemedi", e) }
     }
 
     private fun odakVer() {

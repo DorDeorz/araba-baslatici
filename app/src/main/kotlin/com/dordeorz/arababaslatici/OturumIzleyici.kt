@@ -24,8 +24,7 @@ class OturumIzleyici : NotificationListenerService() {
 
     override fun onListenerConnected() {
         calisan = this
-        AyarKapatici.oturumAcik = oturumVar()
-        thread { Erisilebilirlik.kendiServisiniAc(this) }
+        thread { Erisilebilirlik.ac(this) }
 
         // Dinleyici ölüyken araba ayrıldıysa şimdi kapat.
         val p = Ayarlar.prefs(this)
@@ -50,15 +49,12 @@ class OturumIzleyici : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (oturumBildirimi(sbn)) {
-            AyarKapatici.oturumAcik = true
             handler.removeCallbacks(kapat)
         }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         if (oturumBildirimi(sbn)) {
-            AyarKapatici.oturumAcik = false
-            AyarKapatici.oturumBitis = System.currentTimeMillis()
             Log.i(TAG, "Android Auto oturumu bitti; ${BEKLEME_MS / 1000} sn sonra sunucu kapatılacak")
             handler.removeCallbacks(kapat)
             handler.postDelayed(kapat, BEKLEME_MS)
@@ -123,13 +119,16 @@ class OturumIzleyici : NotificationListenerService() {
         /** "Head unit server running" bildiriminin kanalı. */
         private const val SUNUCU_KANALI = "gearhead_connection_status"
 
-        /** PhoneAuto kısa süre koparsa sunucuyu hemen kapatmamak için bekleme. */
+        /** Oturum kısa süre koparsa sunucuyu hemen kapatmamak için bekleme. */
         const val BEKLEME_MS = 15_000L
 
         @Volatile private var calisan: OturumIzleyici? = null
 
         private fun oturumBildirimi(sbn: StatusBarNotification): Boolean =
             sbn.packageName == GEARHEAD && sbn.notification.channelId == OTURUM_KANALI
+
+        /** Sunucu bildirimi görünüyor mu; dinleyici bağlı değilse null (bilinmiyor). */
+        fun sunucuAcik(): Boolean? = calisan?.sunucuBildirimiVar()
 
         fun bilesen(c: Context) = ComponentName(c, OturumIzleyici::class.java)
 

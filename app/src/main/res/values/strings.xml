@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="ayar_kapatici_aciklama">PhoneAuto\'yu kapattığında arkada kalan Android Auto ayarlarını kapatır. Yalnızca hangi ekranın açıldığını görür, ekran içeriğini okumaz.</string>
+    <string name="sunucu_baslatici_aciklama">Android Auto\'nun ana birim sunucusunu senin yerine başlatır: Android Auto ayarlarında ⋮ menüsünü açıp \"Ana birim sunucusunu başlat\"a basar. Yalnızca Android Auto\'nun ekranlarını görür.</string>
 </resources>

@@ -8,13 +8,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android Auto sesli komutları için mikrofon. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- Bir kez adb ile verilir; PhoneAuto'nun erişilebilirlik servisini yeniden açmak için. -->
+    <!-- Bir kez adb ile verilir; kendi erişilebilirlik servisimizi gerektiğinde yeniden açmak için. -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
     <queries>
-        <package android:name="com.tarplay.phonescreen" />
         <!-- Bildirimdeki "Stop" yazısını Android Auto'nun dilinde okumak için. -->
         <package android:name="com.google.android.projection.gearhead" />
     </queries>
@@ -60,16 +59,16 @@
         </service>
 
         <service
-            android:name=".AyarKapatici"
+            android:name=".SunucuBaslatici"
             android:exported="false"
-            android:label="Araba Başlatıcı – ayarları kapat"
+            android:label="Araba Başlatıcı – sunucuyu başlat"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/ayar_kapatici" />
+                android:resource="@xml/sunucu_baslatici" />
         </service>
 
         <activity
@@ -80,6 +79,11 @@
             android:launchMode="singleTask"
             android:resizeableActivity="false"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
+
+        <activity
+            android:name=".AyarlarActivity"
+            android:exported="false"
+            android:excludeFromRecents="true" />
 
         <receiver
             android:name=".IptalAlici"

@@ -30,12 +30,10 @@ fi
 "$ADB" shell pm grant $PKG android.permission.BLUETOOTH_CONNECT
 "$ADB" shell pm grant $PKG android.permission.POST_NOTIFICATIONS
 "$ADB" shell pm grant $PKG android.permission.RECORD_AUDIO
-# Erişilebilirlik servislerini (PhoneAuto'nunki ve kendi servisimiz) kendisi açabilsin diye.
+# Erişilebilirlik servislerini (sunucuyu başlatan kendi servisimiz) kendisi açabilsin diye.
 "$ADB" shell pm grant $PKG android.permission.WRITE_SECURE_SETTINGS
 # Android Auto sunucusunu otomatik kapatmak için bildirim erişimi.
 "$ADB" shell cmd notification allow_listener $PKG/$PKG.OturumIzleyici
-# PhoneAuto, Android Auto menüsünde yalnızca İngilizce yazıları bulabiliyor.
-"$ADB" shell cmd locale set-app-locales com.google.android.projection.gearhead --locales en-US
 
 # Uygulamayı bir kez aç: erişilebilirlik servislerini kendisi açar.
 "$ADB" shell am start -n $PKG/.MainActivity >/dev/null

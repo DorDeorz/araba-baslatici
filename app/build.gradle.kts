@@ -10,8 +10,8 @@ android {
         applicationId = "com.dordeorz.arababaslatici"
         minSdk = 33
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.9.0"
+        versionCode = 12
+        versionName = "2.0.0"
     }
 
     // İmza anahtarı GitHub Secret'larından gelir (bkz. .github/workflows/android.yml).
